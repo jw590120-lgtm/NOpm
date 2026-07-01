@@ -3,6 +3,7 @@ import type { Product, ProductPhase } from '../types'
 import { useProductStore } from '../stores/productStore'
 import { StageDetailDrawer } from './StageDetailDrawer'
 import { AddProductDialog } from './AddProductDialog'
+import { EditProductDialog } from './EditProductDialog'
 
 const START_YEAR = 2018
 const END_YEAR = 2045
@@ -25,12 +26,15 @@ export function RoadmapGantt() {
   } | null>(null)
 
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
 
   const products = useProductStore((s) => s.products)
   const stages = useProductStore((s) => s.stages)
   const productLines = useProductStore((s) => s.productLines)
   const selectedLine = useProductStore((s) => s.selectedProductLine)
   const setSelectedLine = useProductStore((s) => s.setSelectedProductLine)
+  const deleteProduct = useProductStore((s) => s.deleteProduct)
 
   const filteredProducts = useMemo(
     () => (selectedLine ? products.filter((p) => p.productLine === selectedLine) : products),
@@ -121,18 +125,44 @@ export function RoadmapGantt() {
         {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className="flex flex-col justify-center px-5 border-b border-slate-100 hover:bg-slate-100/50 transition-colors"
+            className="flex flex-col justify-center px-4 border-b border-slate-100 hover:bg-slate-100/50 transition-colors group"
             style={{ height: ROW_HEIGHT }}
           >
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-800">{product.name}</span>
-              <span
-                className={`inline-flex text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                  STATUS_LABELS[product.type]?.className ?? ''
-                }`}
-              >
-                {STATUS_LABELS[product.type]?.text}
-              </span>
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-semibold text-slate-800 truncate">{product.name}</span>
+                <span
+                  className={`inline-flex text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                    STATUS_LABELS[product.type]?.className ?? ''
+                  }`}
+                >
+                  {STATUS_LABELS[product.type]?.text}
+                </span>
+              </div>
+
+              {/* Edit / Delete actions */}
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => setEditingProduct(product)}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                  title="编辑产品"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setDeletingProduct(product)}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="删除产品"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3,6 5,6 21,6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
             </div>
             {product.type === 'planned' && (
               <>
@@ -263,6 +293,48 @@ export function RoadmapGantt() {
 
       {/* Add Product Dialog */}
       <AddProductDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
+
+      {/* Edit Product Dialog */}
+      <EditProductDialog open={editingProduct !== null} product={editingProduct} onClose={() => setEditingProduct(null)} />
+
+      {/* Delete Confirmation Dialog */}
+      {deletingProduct && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-50" onClick={() => setDeletingProduct(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 mb-1">确认删除</h3>
+              <p className="text-xs text-slate-500 mb-5">
+                确定要删除产品 <span className="font-semibold text-slate-700">「{deletingProduct.name}」</span> 吗？此操作不可撤销。
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeletingProduct(null)}
+                  className="flex-1 px-4 py-2 text-xs font-medium text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    deleteProduct(deletingProduct.id)
+                    setDeletingProduct(null)
+                  }}
+                  className="flex-1 px-4 py-2 text-xs font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  确认删除
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
