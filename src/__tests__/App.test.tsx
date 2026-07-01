@@ -10,7 +10,7 @@ describe('App', () => {
 
   it('renders the footer', () => {
     render(<App />)
-    expect(screen.getByText(/预览版本/)).toBeInTheDocument()
+    expect(screen.getByText(/MVP/)).toBeInTheDocument()
   })
 
   it('renders product names', () => {

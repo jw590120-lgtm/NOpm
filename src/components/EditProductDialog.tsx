@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Product } from '../types'
 import { useProductStore } from '../stores/productStore'
+import { showToast } from './Toast'
 
 interface Props {
   open: boolean
@@ -37,6 +38,7 @@ export function EditProductDialog({ open, product, onClose }: Props) {
   const handleSubmit = () => {
     if (!validate() || !product) return
     updateProduct(product.id, { name: name.trim(), productLine, type })
+    showToast('产品信息已更新')
     onClose()
   }
 
@@ -44,10 +46,10 @@ export function EditProductDialog({ open, product, onClose }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/30 z-50 animate-[fadeIn_0.2s_ease-out]" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden"
+          className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-[scaleIn_0.2s_ease-out]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">

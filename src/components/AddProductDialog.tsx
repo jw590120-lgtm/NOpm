@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useProductStore } from '../stores/productStore'
+import { showToast } from './Toast'
 
 interface Props {
   open: boolean
@@ -53,6 +54,7 @@ export function AddProductDialog({ open, onClose }: Props) {
     })
 
     addProduct({ name: name.trim(), productLine: line, type, phases })
+    showToast(`已创建产品「${name.trim()}」`)
     handleClose()
   }
 
@@ -71,12 +73,12 @@ export function AddProductDialog({ open, onClose }: Props) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 z-50" onClick={handleClose} />
+      <div className="fixed inset-0 bg-black/30 z-50 animate-[fadeIn_0.2s_ease-out]" onClick={handleClose} />
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden"
+          className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-[scaleIn_0.2s_ease-out]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

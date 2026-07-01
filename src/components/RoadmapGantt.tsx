@@ -4,6 +4,7 @@ import { useProductStore } from '../stores/productStore'
 import { StageDetailDrawer } from './StageDetailDrawer'
 import { AddProductDialog } from './AddProductDialog'
 import { EditProductDialog } from './EditProductDialog'
+import { showToast } from './Toast'
 
 const START_YEAR = 2018
 const END_YEAR = 2045
@@ -122,7 +123,31 @@ export function RoadmapGantt() {
         </div>
 
         {/* Product rows */}
-        {filteredProducts.map((product) => (
+        {filteredProducts.length === 0 ? (
+          <div className="flex items-center justify-center py-12 px-4 text-center">
+            <div className="space-y-2">
+              <svg className="mx-auto text-slate-300" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+                <line x1="8" y1="10" x2="8" y2="14" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="16" y1="10" x2="16" y2="14" />
+              </svg>
+              <p className="text-xs text-slate-400">
+                {selectedLine ? `「${selectedLine}」暂无产品` : '暂无产品数据'}
+              </p>
+              <button
+                onClick={() => setShowAddDialog(true)}
+                className="text-[11px] text-blue-500 font-medium hover:text-blue-600 transition-colors"
+              >
+                + 新建第一个产品
+              </button>
+            </div>
+          </div>
+        ) : (
+          filteredProducts.map((product) => (
           <div
             key={product.id}
             className="flex flex-col justify-center px-4 border-b border-slate-100 hover:bg-slate-100/50 transition-colors group"
@@ -178,7 +203,8 @@ export function RoadmapGantt() {
               </>
             )}
           </div>
-        ))}
+        ))
+        )}
       </div>
 
       {/* Right: Gantt Canvas */}
@@ -300,9 +326,9 @@ export function RoadmapGantt() {
       {/* Delete Confirmation Dialog */}
       {deletingProduct && (
         <>
-          <div className="fixed inset-0 bg-black/30 z-50" onClick={() => setDeletingProduct(null)} />
+          <div className="fixed inset-0 bg-black/30 z-50 animate-[fadeIn_0.2s_ease-out]" onClick={() => setDeletingProduct(null)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 text-center">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 text-center animate-[scaleIn_0.2s_ease-out]">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
                   <circle cx="12" cy="12" r="10" />
@@ -324,6 +350,7 @@ export function RoadmapGantt() {
                 <button
                   onClick={() => {
                     deleteProduct(deletingProduct.id)
+                    showToast(`已删除产品「${deletingProduct.name}」`, 'info')
                     setDeletingProduct(null)
                   }}
                   className="flex-1 px-4 py-2 text-xs font-bold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"

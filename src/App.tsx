@@ -1,6 +1,11 @@
 import { RoadmapGantt } from './components/RoadmapGantt'
+import { ToastContainer } from './components/Toast'
+import { useProductStore } from './stores/productStore'
 
 function App() {
+  const productCount = useProductStore((s) => s.products.length)
+  const selectedLine = useProductStore((s) => s.selectedProductLine)
+
   return (
     <div className="h-screen flex flex-col bg-slate-100">
       {/* Top Bar */}
@@ -28,7 +33,12 @@ function App() {
           {/* Product line filter indicator */}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-xs font-medium text-slate-600">N 系列</span>
+            <span className="text-xs font-medium text-slate-600">
+              {selectedLine ?? '全部产品线'}
+            </span>
+            <span className="text-[10px] text-slate-400 tabular-nums">
+              {productCount} 产品
+            </span>
           </div>
 
           {/* AI Weekly Report button (Phase 4 placeholder) */}
@@ -122,12 +132,15 @@ function App() {
       {/* Footer */}
       <footer className="flex-shrink-0 h-7 bg-white border-t border-slate-100 flex items-center justify-between px-6">
         <span className="text-[10px] text-slate-400">
-          预览版本 · Phase 0
+          MVP · Phase 1
         </span>
         <span className="text-[10px] text-slate-400">
           点击阶段色块查看工作详情
         </span>
       </footer>
+
+      {/* Toast notifications */}
+      <ToastContainer />
     </div>
   )
 }
