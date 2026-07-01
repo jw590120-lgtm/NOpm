@@ -15,7 +15,7 @@ describe('App', () => {
 
   it('renders product names', () => {
     render(<App />)
-    expect(screen.getByText('N系列')).toBeInTheDocument()
+    expect(screen.getAllByText('N系列').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Nplus')).toBeInTheDocument()
     expect(screen.getByText('N三代')).toBeInTheDocument()
   })

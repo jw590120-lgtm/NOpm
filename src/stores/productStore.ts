@@ -5,6 +5,11 @@ import { products as initialProducts, lifecycleStages as initialStages } from '.
 interface ProductStore {
   products: Product[]
   stages: LifecycleStage[]
+  productLines: string[]
+  selectedProductLine: string | null
+
+  // Filter
+  setSelectedProductLine: (line: string | null) => void
 
   // Product CRUD
   addProduct: (product: Omit<Product, 'id'>) => Product
@@ -17,6 +22,8 @@ interface ProductStore {
   deletePhase: (productId: string, phaseId: string) => void
 }
 
+const initialLines = [...new Set(initialProducts.map((p) => p.productLine))]
+
 let idCounter = 100
 
 function nextId(prefix: string): string {
@@ -26,6 +33,10 @@ function nextId(prefix: string): string {
 export const useProductStore = create<ProductStore>((set) => ({
   products: initialProducts,
   stages: initialStages,
+  productLines: initialLines,
+  selectedProductLine: null,
+
+  setSelectedProductLine: (line) => set({ selectedProductLine: line }),
 
   addProduct: (partial) => {
     const product: Product = { ...partial, id: nextId('prod') }

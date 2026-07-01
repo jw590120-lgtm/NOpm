@@ -1,8 +1,6 @@
 import { RoadmapGantt } from './components/RoadmapGantt'
-import { useProductStore } from './stores/productStore'
 
 function App() {
-  const products = useProductStore((s) => s.products)
   return (
     <div className="h-screen flex flex-col bg-slate-100">
       {/* Top Bar */}
@@ -102,7 +100,7 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 p-4 min-h-0">
-        <RoadmapGantt products={products} />
+        <RoadmapGantt />
       </main>
 
       {/* Floating AI Chat Button (Phase 5 placeholder) */}
