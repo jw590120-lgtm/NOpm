@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import type { Product, ProductPhase } from '../types'
 import { useProductStore } from '../stores/productStore'
 import { StageDetailDrawer } from './StageDetailDrawer'
+import { AddProductDialog } from './AddProductDialog'
 
 const START_YEAR = 2018
 const END_YEAR = 2045
@@ -22,6 +23,8 @@ export function RoadmapGantt() {
     product: Product
     phase: ProductPhase
   } | null>(null)
+
+  const [showAddDialog, setShowAddDialog] = useState(false)
 
   const products = useProductStore((s) => s.products)
   const stages = useProductStore((s) => s.stages)
@@ -98,6 +101,20 @@ export function RoadmapGantt() {
               {line}
             </button>
           ))}
+        </div>
+
+        {/* Add product button */}
+        <div className="px-3 py-2 border-b border-slate-100">
+          <button
+            onClick={() => setShowAddDialog(true)}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 border-dashed border-blue-200 text-xs font-medium text-blue-500 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            新建产品
+          </button>
         </div>
 
         {/* Product rows */}
@@ -243,6 +260,9 @@ export function RoadmapGantt() {
         }
         onClose={() => setSelectedStage(null)}
       />
+
+      {/* Add Product Dialog */}
+      <AddProductDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
     </div>
   )
 }

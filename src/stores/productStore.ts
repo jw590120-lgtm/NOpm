@@ -40,7 +40,12 @@ export const useProductStore = create<ProductStore>((set) => ({
 
   addProduct: (partial) => {
     const product: Product = { ...partial, id: nextId('prod') }
-    set((s) => ({ products: [...s.products, product] }))
+    set((s) => ({
+      products: [...s.products, product],
+      productLines: s.productLines.includes(product.productLine)
+        ? s.productLines
+        : [...s.productLines, product.productLine],
+    }))
     return product
   },
 
