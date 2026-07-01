@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Product, ProductPhase } from '../types'
-import { lifecycleStages } from '../data/mockData'
+import { useProductStore } from '../stores/productStore'
 import { StageDetailDrawer } from './StageDetailDrawer'
 
 interface Props {
@@ -27,7 +27,8 @@ export function RoadmapGantt({ products }: Props) {
     phase: ProductPhase
   } | null>(null)
 
-  const stageMap = new Map(lifecycleStages.map((s) => [s.id, s]))
+  const stages = useProductStore((s) => s.stages)
+  const stageMap = new Map(stages.map((s) => [s.id, s]))
   const totalYears = END_YEAR - START_YEAR + 1
   const chartWidth = totalYears * YEAR_WIDTH
 

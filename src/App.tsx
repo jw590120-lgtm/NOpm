@@ -1,7 +1,8 @@
 import { RoadmapGantt } from './components/RoadmapGantt'
-import { products } from './data/mockData'
+import { useProductStore } from './stores/productStore'
 
 function App() {
+  const products = useProductStore((s) => s.products)
   return (
     <div className="h-screen flex flex-col bg-slate-100">
       {/* Top Bar */}
