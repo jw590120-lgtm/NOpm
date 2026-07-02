@@ -1,10 +1,18 @@
+import { useEffect } from 'react'
 import { RoadmapGantt } from './components/RoadmapGantt'
 import { ToastContainer } from './components/Toast'
 import { useProductStore } from './stores/productStore'
 
 function App() {
+  const fetchInitialData = useProductStore((s) => s.fetchInitialData)
+  const loading = useProductStore((s) => s.loading)
+  const error = useProductStore((s) => s.error)
   const productCount = useProductStore((s) => s.products.length)
   const selectedLine = useProductStore((s) => s.selectedProductLine)
+
+  useEffect(() => {
+    fetchInitialData()
+  }, [fetchInitialData])
 
   return (
     <div className="h-screen flex flex-col bg-slate-100">
@@ -110,7 +118,38 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 p-4 min-h-0">
-        <RoadmapGantt />
+        {loading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-slate-500">加载数据中...</span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4 max-w-md text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 mb-1">数据加载失败</h3>
+                <p className="text-xs text-slate-500 mb-4">{error}</p>
+                <button
+                  onClick={() => fetchInitialData()}
+                  className="px-4 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  重新加载
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <RoadmapGantt />
+        )}
       </main>
 
       {/* Floating AI Chat Button (Phase 5 placeholder) */}
@@ -132,7 +171,7 @@ function App() {
       {/* Footer */}
       <footer className="flex-shrink-0 h-7 bg-white border-t border-slate-100 flex items-center justify-between px-6">
         <span className="text-[10px] text-slate-400">
-          MVP · Phase 1
+          Phase 2 · 后端 API 对接
         </span>
         <span className="text-[10px] text-slate-400">
           点击阶段色块查看工作详情

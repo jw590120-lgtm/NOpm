@@ -113,7 +113,7 @@
 |------|------|------|
 | **2.1** | 后端项目脚手架 + 产品 CRUD API | ✅ 已完成 (07-02) |
 | **2.2** | 生命周期阶段模板 API | ✅ 已完成 (07-02) |
-| **2.3** | 前端对接后端 API | 待开始 |
+| **2.3** | 前端对接后端 API | ✅ 已完成 (07-02) |
 | **2.4** | 触发规则配置页面 | 待开始 |
 | **2.5** | 新产品时间线模拟 | 待开始 |
 
@@ -131,6 +131,20 @@
 - [x] 新建 `server/src/routes/stages.ts` — GET 列表 + GET 按 ID + PUT 修改名称/颜色
 - [x] 在 `index.ts` 注册 `/api/stages` 路由
 - [x] 验证通过（GET 返回 8 个阶段，各含 subStages）
+
+### 步骤 2.3 待办
+
+- [x] 创建 `src/api/client.ts` — fetch 封装 + 全部产品/阶段 API 函数
+- [x] 重构 `src/stores/productStore.ts` — 移除 mockData 直接导入，改为异步 API 初始化
+- [x] 添加 `loading` / `error` 状态 + `fetchInitialData` 动作
+- [x] 所有 CRUD 方法改为 async，先调 API 再更新本地 state
+- [x] Vite 配置代理 `/api` → `localhost:3001`
+- [x] 更新 `App.tsx` — `useEffect` 加载数据 + 加载中/错误态 UI
+- [x] 更新 `src/types/index.ts` — `LifecycleStage` 添加 `order: number`
+- [x] 更新 `mockData.ts` — 所有生命周期阶段添加 `order` 字段
+- [x] 新增 `src/__tests__/helpers.ts` — `seedStore()` 测试辅助
+- [x] 重写全部 6 个测试文件 — 适配异步 Store + API mock
+- [x] 25 个测试全部通过 + TypeScript 检查通过 + Vite build 成功
 
 ---
 
@@ -152,4 +166,4 @@
 
 ---
 
-*当前步骤：2.2 ✅ 完成 → 准备 2.3（前端对接后端 API）*
+*当前步骤：2.3 ✅ 完成 → 准备 2.4（触发规则配置页面）*

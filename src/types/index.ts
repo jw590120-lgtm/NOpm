@@ -10,6 +10,7 @@ export interface LifecycleStage {
   id: string
   name: string
   color: string
+  order: number
   subStages: SubStage[]
 }
 

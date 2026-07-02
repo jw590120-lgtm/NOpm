@@ -1,37 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { RoadmapGantt } from '../components/RoadmapGantt'
-import { useProductStore } from '../stores/productStore'
+import { seedStore } from './helpers'
 
 describe('RoadmapGantt filter', () => {
   beforeEach(() => {
-    useProductStore.setState({
-      ...useProductStore.getInitialState(),
-      selectedProductLine: null,
+    seedStore({
       products: [
-        {
-          id: 'test1',
-          name: '产品A',
-          productLine: 'A系列',
-          type: 'existing' as const,
-          phases: [],
-        },
-        {
-          id: 'test2',
-          name: '产品B',
-          productLine: 'A系列',
-          type: 'existing' as const,
-          phases: [],
-        },
-        {
-          id: 'test3',
-          name: '产品C',
-          productLine: 'B系列',
-          type: 'existing' as const,
-          phases: [],
-        },
+        { id: 'test1', name: '产品A', productLine: 'A系列', type: 'existing', phases: [] },
+        { id: 'test2', name: '产品B', productLine: 'A系列', type: 'existing', phases: [] },
+        { id: 'test3', name: '产品C', productLine: 'B系列', type: 'existing', phases: [] },
       ],
-      productLines: ['A系列', 'B系列'],
+      selectedProductLine: null,
     })
   })
 

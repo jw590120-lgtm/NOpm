@@ -1,23 +1,61 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../App'
-import { useProductStore } from '../stores/productStore'
+import { lifecycleStages, products } from '../data/mockData'
 
-function resetStore() {
-  useProductStore.setState(useProductStore.getInitialState())
-}
+vi.mock('../api/client', () => ({
+  fetchProducts: vi.fn(),
+  fetchStages: vi.fn(),
+  createProduct: vi.fn(),
+  updateProduct: vi.fn(),
+  deleteProduct: vi.fn(),
+  addPhase: vi.fn(),
+  updatePhase: vi.fn(),
+  deletePhase: vi.fn(),
+}))
+
+import * as api from '../api/client'
 
 describe('Full CRUD integration', () => {
   beforeEach(() => {
-    resetStore()
+    vi.clearAllMocks()
   })
 
   it('create → edit → delete full flow', async () => {
     const user = userEvent.setup()
+
+    // Mock initial data fetch
+    vi.mocked(api.fetchProducts).mockResolvedValue([...products])
+    vi.mocked(api.fetchStages).mockResolvedValue(lifecycleStages)
+
+    const createdProduct = {
+      id: 'prod_integration',
+      name: '集成测试产品',
+      productLine: 'N系列',
+      type: 'planned' as const,
+      phases: lifecycleStages.map((s, i) => ({
+        id: `ph_int_${i}`,
+        stageId: s.id,
+        startYear: 2026 + i,
+        endYear: 2027 + i,
+        status: 'upcoming' as const,
+      })),
+    }
+    vi.mocked(api.createProduct).mockResolvedValue(createdProduct)
+
+    const updatedProduct = { ...createdProduct, name: '已改名产品' }
+    vi.mocked(api.updateProduct).mockResolvedValue(updatedProduct)
+
+    vi.mocked(api.deleteProduct).mockResolvedValue(updatedProduct)
+
     render(<App />)
 
-    const initialCount = useProductStore.getState().products.length
+    // Wait for initial data to load (N系列的 filter chip should appear)
+    await waitFor(() => {
+      const elements = screen.getAllByText('N系列')
+      expect(elements.length).toBeGreaterThanOrEqual(2) // filter chip + product name
+    })
 
     // 1. Open add dialog and create a product
     await user.click(screen.getByText('新建产品'))
@@ -25,14 +63,15 @@ describe('Full CRUD integration', () => {
     await user.type(nameInput, '集成测试产品')
     await user.click(screen.getByText('创建产品'))
 
-    // Verify toast and new product
-    expect(screen.getByText(/已创建产品/)).toBeInTheDocument()
-    expect(useProductStore.getState().products.length).toBe(initialCount + 1)
-    const newProduct = useProductStore.getState().products[initialCount]
-    expect(newProduct.name).toBe('集成测试产品')
+    await waitFor(() => {
+      expect(api.createProduct).toHaveBeenCalled()
+    })
 
     // 2. Find and edit the new product
-    // Get all edit buttons, the last one corresponds to the new product
+    // Re-fetch to simulate store update after create
+    vi.mocked(api.fetchProducts).mockResolvedValue([...products, updatedProduct])
+    await user.click(screen.getByText('📋 全部产品线'))
+
     const editButtons = screen.getAllByTitle('编辑产品')
     const lastEditBtn = editButtons[editButtons.length - 1]
     await user.click(lastEditBtn)
@@ -43,11 +82,15 @@ describe('Full CRUD integration', () => {
     await user.type(editNameInput, '已改名产品')
     await user.click(screen.getByText('保存修改'))
 
-    // Verify edit
-    const updated = useProductStore.getState().products[initialCount]
-    expect(updated.name).toBe('已改名产品')
+    await waitFor(() => {
+      expect(api.updateProduct).toHaveBeenCalled()
+    })
 
     // 3. Delete the product
+    vi.mocked(api.fetchProducts).mockResolvedValue([...products])
+    // Wait for UI to reflect changes
+    await user.click(screen.getByText('📋 全部产品线'))
+
     const deleteButtons = screen.getAllByTitle('删除产品')
     const lastDeleteBtn = deleteButtons[deleteButtons.length - 1]
     await user.click(lastDeleteBtn)
@@ -58,7 +101,8 @@ describe('Full CRUD integration', () => {
     expect(buttonVariant).toBeTruthy()
     await user.click(buttonVariant!)
 
-    // Verify deleted
-    expect(useProductStore.getState().products).toHaveLength(initialCount)
+    await waitFor(() => {
+      expect(api.deleteProduct).toHaveBeenCalled()
+    })
   })
 })

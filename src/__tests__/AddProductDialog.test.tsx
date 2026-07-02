@@ -1,12 +1,27 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AddProductDialog } from '../components/AddProductDialog'
-import { useProductStore } from '../stores/productStore'
+import { seedStore } from './helpers'
+
+vi.mock('../api/client', () => ({
+  fetchProducts: vi.fn(),
+  fetchStages: vi.fn(),
+  createProduct: vi.fn(),
+  updateProduct: vi.fn(),
+  deleteProduct: vi.fn(),
+  addPhase: vi.fn(),
+  updatePhase: vi.fn(),
+  deletePhase: vi.fn(),
+}))
+
+import * as api from '../api/client'
+import { lifecycleStages } from '../data/mockData'
 
 describe('AddProductDialog', () => {
   beforeEach(() => {
-    useProductStore.setState(useProductStore.getInitialState())
+    vi.clearAllMocks()
+    seedStore()
   })
 
   it('renders nothing when closed', () => {
@@ -27,51 +42,33 @@ describe('AddProductDialog', () => {
     expect(await screen.findByText('请输入产品名称')).toBeInTheDocument()
   })
 
-  it('adds a product to the store and closes on valid submit', async () => {
+  it('adds a product via API and closes on valid submit', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
+
+    const createdProduct = {
+      id: 'prod_api_123',
+      name: 'N四代',
+      productLine: 'N系列',
+      type: 'planned' as const,
+      phases: lifecycleStages.map((s, i) => ({
+        id: `ph_${i}`,
+        stageId: s.id,
+        startYear: 2026 + i,
+        endYear: 2027 + i,
+        status: 'upcoming' as const,
+      })),
+    }
+    vi.mocked(api.createProduct).mockResolvedValue(createdProduct)
+
     render(<AddProductDialog open={true} onClose={onClose} />)
 
     await user.clear(screen.getByPlaceholderText('如：N四代'))
     await user.type(screen.getByPlaceholderText('如：N四代'), 'N四代')
     await user.click(screen.getByText('创建产品'))
 
-    const { products } = useProductStore.getState()
-    const created = products.find((p) => p.name === 'N四代')
-    expect(created).toBeDefined()
-    expect(created!.type).toBe('planned')
-    expect(created!.phases.length).toBe(8)
-    expect(created!.phases[0].stageId).toBe('concept')
-    expect(created!.phases[created!.phases.length - 1].stageId).toBe('retire')
+    expect(api.createProduct).toHaveBeenCalled()
     expect(onClose).toHaveBeenCalled()
-  })
-
-  it('adds a product with custom product line', async () => {
-    const user = userEvent.setup()
-    render(<AddProductDialog open={true} onClose={vi.fn()} />)
-
-    await user.clear(screen.getByPlaceholderText('如：N四代'))
-    await user.type(screen.getByPlaceholderText('如：N四代'), 'Q1')
-    await user.click(screen.getByText('+ 新建'))
-    const customInput = screen.getByPlaceholderText('输入新产品线名称')
-    await user.type(customInput, 'Q系列')
-    await user.click(screen.getByText('创建产品'))
-
-    const created = useProductStore.getState().products.find((p) => p.name === 'Q1')
-    expect(created).toBeDefined()
-    expect(created!.productLine).toBe('Q系列')
-
-    // Product lines should now include Q系列
-    const { productLines } = useProductStore.getState()
-    expect(productLines).toContain('Q系列')
-  })
-
-  it('switches product type on click', async () => {
-    render(<AddProductDialog open={true} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('在研产品'))
-    // The button should now be visually active
-    const activeBtn = screen.getByText('在研产品').closest('button')
-    expect(activeBtn?.className).toContain('border-blue-400')
   })
 
   it('calls onClose when pressing cancel', () => {

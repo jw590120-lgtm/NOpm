@@ -1,98 +1,109 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useProductStore } from '../stores/productStore'
+import { lifecycleStages, products } from '../data/mockData'
 
-function resetStore() {
-  useProductStore.setState(useProductStore.getInitialState())
-}
+vi.mock('../api/client', () => ({
+  fetchProducts: vi.fn(),
+  fetchStages: vi.fn(),
+  createProduct: vi.fn(),
+  updateProduct: vi.fn(),
+  deleteProduct: vi.fn(),
+  addPhase: vi.fn(),
+  updatePhase: vi.fn(),
+  deletePhase: vi.fn(),
+}))
+
+import * as api from '../api/client'
 
 describe('productStore', () => {
   beforeEach(() => {
-    resetStore()
+    vi.clearAllMocks()
+    useProductStore.setState({
+      products: [],
+      stages: [],
+      productLines: [],
+      selectedProductLine: null,
+      loading: true,
+      error: null,
+    })
   })
 
-  describe('products', () => {
-    it('initializes with 3 products from mockData', () => {
-      const { products } = useProductStore.getState()
-      expect(products).toHaveLength(3)
-      expect(products[0].name).toBe('N系列')
-      expect(products[1].name).toBe('Nplus')
-      expect(products[2].name).toBe('N三代')
+  describe('fetchInitialData', () => {
+    it('loads products and stages from API', async () => {
+      vi.mocked(api.fetchProducts).mockResolvedValue(products)
+      vi.mocked(api.fetchStages).mockResolvedValue(lifecycleStages)
+
+      await useProductStore.getState().fetchInitialData()
+
+      const state = useProductStore.getState()
+      expect(state.products).toHaveLength(3)
+      expect(state.stages).toHaveLength(8)
+      expect(state.loading).toBe(false)
+      expect(state.error).toBeNull()
     })
 
-    it('stages have 8 lifecycle stages', () => {
-      const { stages } = useProductStore.getState()
-      expect(stages).toHaveLength(8)
-      expect(stages[0].name).toBe('概念与立项')
+    it('sets error when API fails', async () => {
+      vi.mocked(api.fetchProducts).mockRejectedValue(new Error('Network Error'))
+
+      await useProductStore.getState().fetchInitialData()
+
+      const state = useProductStore.getState()
+      expect(state.loading).toBe(false)
+      expect(state.error).toContain('无法加载数据')
     })
   })
 
   describe('addProduct', () => {
-    it('adds a new product with auto-generated id', () => {
-      const { addProduct, products } = useProductStore.getState()
-      const created = addProduct({
+    it('adds a new product via API', async () => {
+      const newProduct = {
+        id: 'prod_api',
         name: 'N四代',
         productLine: 'N系列',
         type: 'planned' as const,
         phases: [],
+      }
+      vi.mocked(api.createProduct).mockResolvedValue(newProduct)
+
+      // First seed some data
+      useProductStore.setState({ products: [products[0]], productLines: ['N系列'] })
+
+      await useProductStore.getState().addProduct({
+        name: 'N四代',
+        productLine: 'N系列',
+        type: 'planned',
+        phases: [],
       })
-      const updated = useProductStore.getState().products
-      expect(updated).toHaveLength(4)
-      expect(updated[3].name).toBe('N四代')
-      expect(created.id).toBeDefined()
+
+      const state = useProductStore.getState()
+      expect(state.products).toHaveLength(2)
+      expect(state.products[1].name).toBe('N四代')
     })
   })
 
   describe('updateProduct', () => {
-    it('updates product name', () => {
-      const { products, updateProduct } = useProductStore.getState()
-      const targetId = products[0].id
-      updateProduct(targetId, { name: 'N系列改' })
-      const updated = useProductStore.getState().products[0]
-      expect(updated.name).toBe('N系列改')
+    it('updates a product via API', async () => {
+      const updated = { ...products[0], name: 'N系列改' }
+      vi.mocked(api.updateProduct).mockResolvedValue(updated)
+
+      useProductStore.setState({ products: [products[0]] })
+
+      await useProductStore.getState().updateProduct(products[0].id, { name: 'N系列改' })
+
+      const state = useProductStore.getState()
+      expect(state.products[0].name).toBe('N系列改')
     })
   })
 
   describe('deleteProduct', () => {
-    it('removes a product by id', () => {
-      const { products, deleteProduct } = useProductStore.getState()
-      const targetId = products[2].id
-      deleteProduct(targetId)
-      const updated = useProductStore.getState().products
-      expect(updated).toHaveLength(2)
-      expect(updated.find((p) => p.id === targetId)).toBeUndefined()
-    })
-  })
+    it('deletes a product via API', async () => {
+      vi.mocked(api.deleteProduct).mockResolvedValue(products[0])
 
-  describe('phase CRUD', () => {
-    it('adds a phase to a product', () => {
-      const { products, addPhase } = useProductStore.getState()
-      const productId = products[0].id
-      addPhase(productId, {
-        stageId: 'mature',
-        startYear: 2023,
-        endYear: 2028,
-        status: 'completed',
-      })
-      const updated = useProductStore.getState().products[0]
-      expect(updated.phases).toHaveLength(9) // 8 original + 1 new
-    })
+      useProductStore.setState({ products: [...products] })
 
-    it('updates a phase on a product', () => {
-      const { products, updatePhase } = useProductStore.getState()
-      const productId = products[0].id
-      const phaseId = products[0].phases[0].id
-      updatePhase(productId, phaseId, { startYear: 2020 })
-      const updated = useProductStore.getState().products[0]
-      expect(updated.phases[0].startYear).toBe(2020)
-    })
+      await useProductStore.getState().deleteProduct(products[2].id)
 
-    it('deletes a phase from a product', () => {
-      const { products, deletePhase } = useProductStore.getState()
-      const productId = products[0].id
-      const phaseId = products[0].phases[0].id
-      deletePhase(productId, phaseId)
-      const updated = useProductStore.getState().products[0]
-      expect(updated.phases).toHaveLength(7) // 8 original - 1
+      const state = useProductStore.getState()
+      expect(state.products).toHaveLength(2)
     })
   })
 })

@@ -30,14 +30,14 @@ export function AddProductDialog({ open, onClose }: Props) {
     return Object.keys(next).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return
 
     const line = useCustomLine ? customLine.trim() : productLine
 
     // Auto-generate phases from lifecycle template
     let currentYear = startYear
-    const phases = stages.map((stage) => {
+    const phases = stages.map((stage, i) => {
       const duration = stage.subStages.reduce(
         (sum, s) => sum + (s.durationMonths[1] ?? s.durationMonths[0]),
         0,
@@ -54,7 +54,7 @@ export function AddProductDialog({ open, onClose }: Props) {
       return phase
     })
 
-    addProduct({ name: name.trim(), productLine: line, type, phases })
+    await addProduct({ name: name.trim(), productLine: line, type, phases })
     showToast(`已创建产品「${name.trim()}」`)
     handleClose()
   }
