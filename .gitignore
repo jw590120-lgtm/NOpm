@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Server runtime data
+server/data/
+tunnel.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

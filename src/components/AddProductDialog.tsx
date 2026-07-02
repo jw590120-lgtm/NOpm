@@ -44,6 +44,7 @@ export function AddProductDialog({ open, onClose }: Props) {
       )
       const durationYears = Math.max(Math.round(duration / 12), 1)
       const phase = {
+        id: `ph_${Date.now()}_${i}`,
         stageId: stage.id,
         startYear: currentYear,
         endYear: currentYear + durationYears,
