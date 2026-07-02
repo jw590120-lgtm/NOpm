@@ -114,7 +114,7 @@
 | **2.1** | 后端项目脚手架 + 产品 CRUD API | ✅ 已完成 (07-02) |
 | **2.2** | 生命周期阶段模板 API | ✅ 已完成 (07-02) |
 | **2.3** | 前端对接后端 API | ✅ 已完成 (07-02) |
-| **2.4** | 触发规则配置页面 | 待开始 |
+| **2.4** | 触发规则配置页面 | ✅ 已完成 (07-02) |
 | **2.5** | 新产品时间线模拟 | 待开始 |
 
 ### 步骤 2.1 待办
@@ -146,6 +146,19 @@
 - [x] 重写全部 6 个测试文件 — 适配异步 Store + API mock
 - [x] 25 个测试全部通过 + TypeScript 检查通过 + Vite build 成功
 
+### 步骤 2.4 待办
+
+- [x] 后端：添加 `TriggerRule` / `RuleCondition` 类型到 `server/src/types.ts`
+- [x] 后端：6 条种子规则（涵盖市场/商业/法规/技术/供应链/临床六大分类）
+- [x] 后端：创建 `server/src/routes/rules.ts` — 完整 CRUD API
+- [x] 后端：在 `index.ts` 注册 `/api/rules` 路由
+- [x] 前端：添加 `TriggerRule` / `RuleCondition` 类型到 `src/types/index.ts`
+- [x] 前端：`src/api/client.ts` 添加 rules CRUD 方法
+- [x] 前端：新建 `RuleConfigPanel` 组件 — 规则列表 + 开关 + 编辑/删除/新建对话框
+- [x] 前端：`App.tsx` 添加顶部 Tab 导航（路线图 / 触发规则）
+- [x] 新建 `RuleConfigPanel.test.tsx` — 7 个测试
+- [x] 32 个测试全部通过 + TypeScript 检查通过 + Vite build 成功
+
 ---
 
 ## 决策记录
@@ -166,4 +179,4 @@
 
 ---
 
-*当前步骤：2.3 ✅ 完成 → 准备 2.4（触发规则配置页面）*
+*当前步骤：2.4 ✅ 完成 → 准备 2.5（新产品时间线模拟）*

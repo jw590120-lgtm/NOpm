@@ -1,4 +1,4 @@
-import type { Product, ProductPhase, LifecycleStage } from '../types'
+import type { Product, ProductPhase, LifecycleStage, TriggerRule } from '../types'
 
 const BASE = '/api'
 
@@ -74,4 +74,30 @@ export function deletePhase(productId: string, phaseId: string): Promise<Product
 
 export function fetchStages(): Promise<LifecycleStage[]> {
   return request<LifecycleStage[]>('/stages')
+}
+
+// ── Rules ──
+
+export function fetchRules(): Promise<TriggerRule[]> {
+  return request<TriggerRule[]>('/rules')
+}
+
+export function createRule(data: Omit<TriggerRule, 'id'>): Promise<TriggerRule> {
+  return request<TriggerRule>('/rules', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateRule(id: string, patch: Partial<TriggerRule>): Promise<TriggerRule> {
+  return request<TriggerRule>(`/rules/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function deleteRule(id: string): Promise<TriggerRule> {
+  return request<TriggerRule>(`/rules/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
 }

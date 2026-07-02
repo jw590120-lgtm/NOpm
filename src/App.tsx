@@ -1,9 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { RoadmapGantt } from './components/RoadmapGantt'
+import { RuleConfigPanel } from './components/RuleConfigPanel'
 import { ToastContainer } from './components/Toast'
 import { useProductStore } from './stores/productStore'
 
+type Page = 'roadmap' | 'rules'
+
 function App() {
+  const [page, setPage] = useState<Page>('roadmap')
   const fetchInitialData = useProductStore((s) => s.fetchInitialData)
   const loading = useProductStore((s) => s.loading)
   const error = useProductStore((s) => s.error)
@@ -18,22 +22,40 @@ function App() {
     <div className="h-screen flex flex-col bg-slate-100">
       {/* Top Bar */}
       <header className="flex-shrink-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-slate-800 leading-tight">
+                产品生命周期管理
+              </h1>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                Product Lifecycle Manager
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-slate-800 leading-tight">
-              产品生命周期管理
-            </h1>
-            <p className="text-[10px] text-slate-400 leading-tight">
-              Product Lifecycle Manager
-            </p>
+
+          {/* Tab Navigation */}
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 ml-4">
+            <button
+              onClick={() => setPage('roadmap')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'roadmap' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              路线图
+            </button>
+            <button
+              onClick={() => setPage('rules')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'rules' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              触发规则
+            </button>
           </div>
         </div>
 
@@ -118,7 +140,9 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 p-4 min-h-0">
-        {loading ? (
+        {page === 'rules' ? (
+          <RuleConfigPanel onBack={() => setPage('roadmap')} />
+        ) : loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />

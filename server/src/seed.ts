@@ -1,4 +1,4 @@
-import type { Product, LifecycleStage } from './types.js'
+import type { Product, LifecycleStage, TriggerRule } from './types.js'
 
 export const stages: LifecycleStage[] = [
   {
@@ -102,5 +102,73 @@ export const products: Product[] = [
       { id: 'ph-3-7', stageId: 'decline', startYear: 2040, endYear: 2042, status: 'upcoming' },
       { id: 'ph-3-8', stageId: 'retire', startYear: 2042, endYear: 2043, status: 'upcoming' },
     ],
+  },
+]
+
+export const rules: TriggerRule[] = [
+  {
+    id: 'rule-1',
+    name: '一代产品进入成熟期 → 推荐立项二代',
+    category: '市场',
+    description: '当现有产品进入销售成熟期（mature）时，自动推荐启动下一代产品的立项工作',
+    condition: {
+      type: 'and',
+      conditions: [
+        { type: 'time_since', stageId: 'mature', yearsMin: 1, yearsMax: 3 },
+      ],
+    },
+    action: 'recommend_new_product',
+    priority: 'high',
+    enabled: true,
+  },
+  {
+    id: 'rule-2',
+    name: '产品进入衰退期 → 退市预警',
+    category: '商业',
+    description: '当产品进入衰退期时，提前发出退市预警',
+    condition: { type: 'time_since', stageId: 'decline', yearsMin: 0, yearsMax: 1 },
+    action: 'recommend_retire',
+    priority: 'high',
+    enabled: true,
+  },
+  {
+    id: 'rule-3',
+    name: '注册证到期前2年 → 续期提醒',
+    category: '法规',
+    description: '注册证每5年需续期，到期前2年发出提醒',
+    condition: { type: 'time_since', stageId: 'mature', yearsMin: 3, yearsMax: 5 },
+    action: 'alert',
+    priority: 'high',
+    enabled: true,
+  },
+  {
+    id: 'rule-4',
+    name: '竞品发布新技术 → 产品升级评估',
+    category: '技术',
+    description: '当检测到竞争产品发布重大技术突破时，触发产品升级评估',
+    condition: { type: 'metric_threshold', metric: 'competitor_score', operator: 'gt', value: 80 },
+    action: 'alert',
+    priority: 'medium',
+    enabled: true,
+  },
+  {
+    id: 'rule-5',
+    name: '供应链重大变更 → 风险评估',
+    category: '供应链',
+    description: '当核心原材料供应商发生重大变更时，提示进行供应链风险评估',
+    condition: { type: 'metric_threshold', metric: 'supply_risk', operator: 'gt', value: 70 },
+    action: 'alert',
+    priority: 'medium',
+    enabled: true,
+  },
+  {
+    id: 'rule-6',
+    name: '临床试验数据异常 → 暂停警告',
+    category: '临床',
+    description: '当临床试验中出现异常不良事件率超过阈值时，发出暂停评估警告',
+    condition: { type: 'metric_threshold', metric: 'adverse_event_rate', operator: 'gt', value: 5 },
+    action: 'alert',
+    priority: 'high',
+    enabled: true,
   },
 ]
