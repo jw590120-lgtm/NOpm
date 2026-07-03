@@ -3,10 +3,11 @@ import { RoadmapGantt } from './components/RoadmapGantt'
 import { RuleConfigPanel } from './components/RuleConfigPanel'
 import { TimelineSimulatorPanel } from './components/TimelineSimulator'
 import { NotificationCenter } from './components/NotificationCenter'
+import { AiChatPanel } from './components/AiChatPanel'
 import { ToastContainer } from './components/Toast'
 import { useProductStore } from './stores/productStore'
 
-type Page = 'roadmap' | 'rules' | 'simulate' | 'notifications'
+type Page = 'roadmap' | 'rules' | 'simulate' | 'notifications' | 'chat'
 
 function App() {
   const [page, setPage] = useState<Page>('roadmap')
@@ -69,6 +70,12 @@ function App() {
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'notifications' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               通知中心
+            </button>
+            <button
+              onClick={() => setPage('chat')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'chat' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              AI 助手
             </button>
           </div>
         </div>
@@ -160,6 +167,8 @@ function App() {
           <TimelineSimulatorPanel onBack={() => setPage('roadmap')} />
         ) : page === 'notifications' ? (
           <NotificationCenter onBack={() => setPage('roadmap')} />
+        ) : page === 'chat' ? (
+          <AiChatPanel onBack={() => setPage('roadmap')} />
         ) : loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">

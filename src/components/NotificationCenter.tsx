@@ -25,6 +25,8 @@ export function NotificationCenter({ onBack }: Props) {
   const [result, setResult] = useState<CheckResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null)
+  const [analyses, setAnalyses] = useState<Record<string, string>>({})
 
   const runCheck = useCallback(async () => {
     setLoading(true)
@@ -49,6 +51,21 @@ export function NotificationCenter({ onBack }: Props) {
   useEffect(() => {
     runCheck()
   }, [runCheck])
+
+  const handleAiAnalyze = useCallback(async (notification: Record<string, unknown>) => {
+    const n = notification as { match: { ruleId: string; productId: string } }
+    const key = `${n.match.ruleId}-${n.match.productId}`
+    setAnalyzingId(key)
+    try {
+      const res = await api.aiAnalyzeNotification(notification)
+      setAnalyses((prev) => ({ ...prev, [key]: res.analysis }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'AI analysis failed'
+      showToast(msg, 'error')
+    } finally {
+      setAnalyzingId(null)
+    }
+  }, [])
 
   const healthyCount = result ? result.totalProducts - result.totalMatches : 0
 
@@ -170,9 +187,46 @@ export function NotificationCenter({ onBack }: Props) {
                         </div>
 
                         <p className="text-xs text-slate-600 mb-2">{n.message}</p>
-                        <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2 mb-2">
                           建议：{n.suggestion}
                         </p>
+
+                        {/* AI Analysis */}
+                        <div className="border-t border-slate-100 pt-2">
+                          {analyses[`${n.match.ruleId}-${n.match.productId}`] ? (
+                            <div className="bg-indigo-50 rounded-lg px-3 py-2">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2">
+                                  <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
+                                </svg>
+                                <span className="text-[10px] font-semibold text-indigo-600">AI 深度分析</span>
+                              </div>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                {analyses[`${n.match.ruleId}-${n.match.productId}`]}
+                              </p>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleAiAnalyze(n)}
+                              disabled={analyzingId === `${n.match.ruleId}-${n.match.productId}`}
+                              className="flex items-center gap-1.5 text-[10px] text-indigo-500 hover:text-indigo-700 transition-colors disabled:opacity-50"
+                            >
+                              {analyzingId === `${n.match.ruleId}-${n.match.productId}` ? (
+                                <>
+                                  <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                                  AI 分析中...
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
+                                  </svg>
+                                  AI 深度分析
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

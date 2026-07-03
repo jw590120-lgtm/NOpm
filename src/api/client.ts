@@ -116,3 +116,30 @@ export function simulateTimeline(data: SimulationRequest): Promise<SimulationRes
 export function runRuleCheck(): Promise<CheckResult> {
   return request<CheckResult>('/check', { method: 'POST' })
 }
+
+// ── AI ──
+
+export interface AiChatResult {
+  reply: string
+}
+
+export function aiChat(messages: { role: 'user' | 'assistant'; content: string }[], context?: string): Promise<AiChatResult> {
+  return request<AiChatResult>('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify({ messages, context }),
+  })
+}
+
+export function aiAnalyzeNotification(notification: Record<string, unknown>): Promise<{ analysis: string }> {
+  return request<{ analysis: string }>('/ai/analyze-notification', {
+    method: 'POST',
+    body: JSON.stringify({ notification }),
+  })
+}
+
+export function aiAnalyzeProduct(productId: string): Promise<{ analysis: string }> {
+  return request<{ analysis: string }>('/ai/analyze-product', {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  })
+}
