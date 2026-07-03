@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
-import { aiChat } from '../api/client'
+import { aiChat, resumeSession } from '../api/client'
 import { showToast } from './Toast'
 
 interface Message {
@@ -12,6 +12,12 @@ interface Message {
 
 interface Props {
   onClose: () => void
+}
+
+const SESSION_STORAGE_KEY = 'plm-ai-session-id'
+
+function generateSessionId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
 const QUICK_PROMPTS = [
@@ -103,7 +109,9 @@ export function AiChatPanel({ onClose }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [initialized, setInitialized] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const sessionIdRef = useRef<string>('')
 
   const sendMessage = useCallback(async (content: string) => {
     const userMsg: Message = { role: 'user', content }
@@ -116,7 +124,11 @@ export function AiChatPanel({ onClose }: Props) {
       const conversation = [...messages, userMsg]
       const result = await aiChat(
         conversation.map((m) => ({ role: m.role, content: m.content })),
+        undefined,
+        sessionIdRef.current,
       )
+      sessionIdRef.current = result.sessionId
+      localStorage.setItem(SESSION_STORAGE_KEY, result.sessionId)
       setMessages((prev) => [...prev, { role: 'assistant', content: result.reply }])
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'AI request failed'
@@ -142,14 +154,49 @@ export function AiChatPanel({ onClose }: Props) {
 
   useEffect(() => {
     const init = async () => {
+      const storedId = localStorage.getItem(SESSION_STORAGE_KEY)
+
+      if (storedId) {
+        // Try to resume existing session
+        try {
+          const session = await resumeSession(storedId)
+          if (session.messages && session.messages.length > 0) {
+            setMessages(
+              session.messages.map((m) => ({ role: m.role, content: m.content })),
+            )
+            sessionIdRef.current = session.sessionId
+            setInitialized(true)
+            return
+          }
+        } catch {
+          // Session expired or server restarted — clear and start fresh
+          localStorage.removeItem(SESSION_STORAGE_KEY)
+        }
+      }
+
+      // No valid session to resume — start a new one
+      const newId = generateSessionId()
+      sessionIdRef.current = newId
+      localStorage.setItem(SESSION_STORAGE_KEY, newId)
+
       try {
-        const result = await aiChat([
-          { role: 'user', content: '你好，请简单介绍一下你能帮我做什么，并告诉我系统当前管理了哪些产品。' },
-        ])
+        const result = await aiChat(
+          [
+            {
+              role: 'user',
+              content: '你好，请简单介绍一下你能帮我做什么，并告诉我系统当前管理了哪些产品。',
+            },
+          ],
+          undefined,
+          newId,
+        )
+        sessionIdRef.current = result.sessionId
+        localStorage.setItem(SESSION_STORAGE_KEY, result.sessionId)
         setMessages([{ role: 'assistant', content: result.reply }])
       } catch {
         setMessages([{ role: 'assistant', content: '欢迎使用 AI 助手。请问有什么可以帮助您的？' }])
       }
+      setInitialized(true)
     }
     init()
   }, [])
@@ -172,7 +219,7 @@ export function AiChatPanel({ onClose }: Props) {
         </button>
       </div>
 
-      {messages.every((m) => m.role === 'assistant') && (
+      {initialized && messages.every((m) => m.role === 'assistant') && (
         <div className="flex-shrink-0 px-6 py-3 border-b border-slate-100 bg-slate-50">
           <p className="text-[10px] text-slate-400 mb-2">快捷提问</p>
           <div className="flex flex-wrap gap-2">
@@ -191,7 +238,17 @@ export function AiChatPanel({ onClose }: Props) {
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-auto px-6 py-4 space-y-4">
-        {messages.map((m, i) => (
+        {!initialized && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-md shadow-sm px-4 py-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        )}
+
+        {initialized && messages.map((m, i) => (
           <div
             key={i}
             className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}

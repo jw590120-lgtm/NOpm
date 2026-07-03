@@ -10,7 +10,9 @@ const MODEL = process.env.AI_MODEL ?? 'deepseek-chat'
 
 const SYSTEM_PROMPT: ChatCompletionMessageParam = {
   role: 'system',
-  content: `你是产品生命周期管理（PLM）系统的 AI 助手。你帮助产品经理管理医疗器械产品线，包括 N系列、Nplus、N三代、E系列等。
+  content: `你是产品生命周期管理（PLM）系统的 AI 助手。你帮助产品经理管理医疗器械产品线。
+
+你已经获得了当前系统数据的上下文，请基于真实数据回答问题，不要编造不存在的信息。
 
 你的能力：
 - 解释生命周期阶段（概念与立项、设计开发、递交注册、产品上市、销售成长期、销售成熟期、衰退期、正式退市）的含义和典型时长
@@ -64,6 +66,7 @@ export async function analyzeNotification(
       priority: string
     }
   },
+  context?: string,
 ): Promise<string> {
   const prompt = `请分析以下产品管理通知，给出深入解读和额外建议：
 
@@ -82,6 +85,7 @@ export async function analyzeNotification(
 
   return chat({
     messages: [{ role: 'user', content: prompt }],
+    context,
   })
 }
 

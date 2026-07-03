@@ -121,13 +121,27 @@ export function runRuleCheck(): Promise<CheckResult> {
 
 export interface AiChatResult {
   reply: string
+  sessionId: string
 }
 
-export function aiChat(messages: { role: 'user' | 'assistant'; content: string }[], context?: string): Promise<AiChatResult> {
+export function aiChat(
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  context?: string,
+  sessionId?: string,
+): Promise<AiChatResult> {
   return request<AiChatResult>('/ai/chat', {
     method: 'POST',
-    body: JSON.stringify({ messages, context }),
+    body: JSON.stringify({ messages, context, sessionId }),
   })
+}
+
+export interface SessionResumeResult {
+  sessionId: string
+  messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[]
+}
+
+export function resumeSession(sessionId: string): Promise<SessionResumeResult> {
+  return request<SessionResumeResult>(`/ai/session/${encodeURIComponent(sessionId)}`)
 }
 
 export function aiAnalyzeNotification(notification: Record<string, unknown>): Promise<{ analysis: string }> {
