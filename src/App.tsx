@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { RoadmapGantt } from './components/RoadmapGantt'
 import { RuleConfigPanel } from './components/RuleConfigPanel'
 import { TimelineSimulatorPanel } from './components/TimelineSimulator'
+import { NotificationCenter } from './components/NotificationCenter'
 import { ToastContainer } from './components/Toast'
 import { useProductStore } from './stores/productStore'
 
-type Page = 'roadmap' | 'rules' | 'simulate'
+type Page = 'roadmap' | 'rules' | 'simulate' | 'notifications'
 
 function App() {
   const [page, setPage] = useState<Page>('roadmap')
@@ -62,6 +63,12 @@ function App() {
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'simulate' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               时间线模拟
+            </button>
+            <button
+              onClick={() => setPage('notifications')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'notifications' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              通知中心
             </button>
           </div>
         </div>
@@ -151,6 +158,8 @@ function App() {
           <RuleConfigPanel onBack={() => setPage('roadmap')} />
         ) : page === 'simulate' ? (
           <TimelineSimulatorPanel onBack={() => setPage('roadmap')} />
+        ) : page === 'notifications' ? (
+          <NotificationCenter onBack={() => setPage('roadmap')} />
         ) : loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">

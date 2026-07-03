@@ -79,3 +79,33 @@ export interface SimulationResult {
   referenceProductName: string
   phases: ProductPhase[]
 }
+
+// ── Rule Check / Notifications ──
+
+export interface RuleMatch {
+  ruleId: string
+  ruleName: string
+  category: string
+  priority: 'high' | 'medium' | 'low'
+  productId: string
+  productName: string
+  action: string
+  description: string
+  details: Record<string, unknown>
+}
+
+export interface TemplateNotification {
+  match: RuleMatch
+  title: string
+  message: string
+  suggestion: string
+}
+
+export interface CheckResult {
+  checkedAt: string
+  totalProducts: number
+  activeRules: number
+  totalMatches: number
+  matches: RuleMatch[]
+  notifications: TemplateNotification[]
+}

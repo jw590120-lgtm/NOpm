@@ -1,4 +1,4 @@
-import type { Product, ProductPhase, LifecycleStage, TriggerRule, SimulationRequest, SimulationResult } from '../types'
+import type { Product, ProductPhase, LifecycleStage, TriggerRule, SimulationRequest, SimulationResult, CheckResult } from '../types'
 
 const BASE = '/api'
 
@@ -109,4 +109,10 @@ export function simulateTimeline(data: SimulationRequest): Promise<SimulationRes
     method: 'POST',
     body: JSON.stringify(data),
   })
+}
+
+// ── Rule Check ──
+
+export function runRuleCheck(): Promise<CheckResult> {
+  return request<CheckResult>('/check', { method: 'POST' })
 }
