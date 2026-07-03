@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import type { Components } from 'react-markdown'
 import { aiChat } from '../api/client'
 import { showToast } from './Toast'
 
@@ -17,6 +20,83 @@ const QUICK_PROMPTS = [
   { label: '新产品建议', text: '基于当前产品组合，我应该启动什么新产品？大概什么时间？' },
   { label: '退市评估', text: '哪些产品当前处于衰退期或面临退市？请给出处理优先级建议。' },
 ]
+
+/** Custom markdown components styled with Tailwind */
+const mdComponents: Components = {
+  table({ children }) {
+    return (
+      <div className="overflow-x-auto my-2 rounded-lg border border-slate-200">
+        <table className="min-w-full text-xs">{children}</table>
+      </div>
+    )
+  },
+  thead({ children }) {
+    return <thead className="bg-slate-200/60">{children}</thead>
+  },
+  th({ children }) {
+    return (
+      <th className="px-2.5 py-1.5 text-left font-semibold text-slate-600 border-b border-slate-200 whitespace-nowrap">
+        {children}
+      </th>
+    )
+  },
+  td({ children }) {
+    return (
+      <td className="px-2.5 py-1.5 text-slate-600 border-b border-slate-100">
+        {children}
+      </td>
+    )
+  },
+  tr({ children }) {
+    return <tr className="even:bg-slate-50/50">{children}</tr>
+  },
+  strong({ children }) {
+    return <strong className="font-semibold text-slate-800">{children}</strong>
+  },
+  ul({ children }) {
+    return <ul className="list-disc pl-4 my-1.5 space-y-0.5">{children}</ul>
+  },
+  ol({ children }) {
+    return <ol className="list-decimal pl-4 my-1.5 space-y-0.5">{children}</ol>
+  },
+  li({ children }) {
+    return <li className="text-slate-600">{children}</li>
+  },
+  p({ children }) {
+    return <p className="mb-1.5 last:mb-0">{children}</p>
+  },
+  code({ className, children, ...props }) {
+    const isInline = !className
+    if (isInline) {
+      return (
+        <code className="px-1 py-0.5 bg-slate-200 rounded text-[11px] text-amber-700 font-mono" {...props}>
+          {children}
+        </code>
+      )
+    }
+    return (
+      <code className="block bg-slate-200 rounded-lg px-3 py-2 my-2 text-[11px] text-slate-700 font-mono overflow-x-auto" {...props}>
+        {children}
+      </code>
+    )
+  },
+  h2({ children }) {
+    return <h2 className="text-sm font-bold text-slate-800 mt-3 mb-1.5">{children}</h2>
+  },
+  h3({ children }) {
+    return <h3 className="text-xs font-semibold text-slate-700 mt-2 mb-1">{children}</h3>
+  },
+  hr() {
+    return <hr className="my-2 border-slate-200" />
+  },
+  blockquote({ children }) {
+    return (
+      <blockquote className="border-l-3 border-blue-300 pl-3 my-2 text-slate-500 italic">
+        {children}
+      </blockquote>
+    )
+  },
+}
 
 export function AiChatPanel({ onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -117,20 +197,26 @@ export function AiChatPanel({ onClose }: Props) {
             className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              className={`${
                 m.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-md'
-                  : 'bg-slate-100 text-slate-700 rounded-bl-md'
-              }`}
+                  ? 'max-w-[70%] bg-blue-600 text-white rounded-2xl rounded-br-md'
+                  : 'max-w-[88%] bg-white border border-slate-200 rounded-2xl rounded-bl-md shadow-sm'
+              } px-4 py-3 text-sm leading-relaxed`}
             >
-              {m.content}
+              {m.role === 'user' ? (
+                <span>{m.content}</span>
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                  {m.content}
+                </ReactMarkdown>
+              )}
             </div>
           </div>
         ))}
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-100 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2">
+            <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-md shadow-sm px-4 py-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />

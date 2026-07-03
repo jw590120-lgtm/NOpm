@@ -1,7 +1,39 @@
 import { useState, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { CheckResult } from '../types'
 import { showToast } from './Toast'
 import * as api from '../api/client'
+
+const mdComponents = {
+  strong({ children }: { children: React.ReactNode }) {
+    return <strong className="font-semibold text-slate-800">{children}</strong>
+  },
+  ul({ children }: { children: React.ReactNode }) {
+    return <ul className="list-disc pl-4 my-1 space-y-0.5 text-xs">{children}</ul>
+  },
+  ol({ children }: { children: React.ReactNode }) {
+    return <ol className="list-decimal pl-4 my-1 space-y-0.5 text-xs">{children}</ol>
+  },
+  p({ children }: { children: React.ReactNode }) {
+    return <p className="mb-1 last:mb-0">{children}</p>
+  },
+  code({ children }: { children: React.ReactNode }) {
+    return <code className="px-1 py-0.5 bg-indigo-100 rounded text-[11px] text-indigo-700 font-mono">{children}</code>
+  },
+  table({ children }: { children: React.ReactNode }) {
+    return <div className="overflow-x-auto my-1.5 rounded border border-indigo-200"><table className="min-w-full text-[11px]">{children}</table></div>
+  },
+  thead({ children }: { children: React.ReactNode }) {
+    return <thead className="bg-indigo-100/50">{children}</thead>
+  },
+  th({ children }: { children: React.ReactNode }) {
+    return <th className="px-2 py-1 text-left font-semibold text-indigo-700 border-b border-indigo-200 whitespace-nowrap">{children}</th>
+  },
+  td({ children }: { children: React.ReactNode }) {
+    return <td className="px-2 py-1 text-slate-600 border-b border-indigo-100">{children}</td>
+  },
+}
 
 const PRIORITY_COLORS = {
   high: 'bg-red-100 text-red-700 border-red-200',
@@ -202,9 +234,11 @@ export function NotificationCenter({ onClose }: Props) {
                                 </svg>
                                 <span className="text-[10px] font-semibold text-indigo-600">AI 深度分析</span>
                               </div>
-                              <p className="text-xs text-slate-600 leading-relaxed">
-                                {analyses[`${n.match.ruleId}-${n.match.productId}`]}
-                              </p>
+                              <div className="text-xs text-slate-600 leading-relaxed">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                                  {analyses[`${n.match.ruleId}-${n.match.productId}`]}
+                                </ReactMarkdown>
+                              </div>
                             </div>
                           ) : (
                             <button
