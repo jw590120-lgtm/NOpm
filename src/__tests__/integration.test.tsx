@@ -13,6 +13,7 @@ vi.mock('../api/client', () => ({
   addPhase: vi.fn(),
   updatePhase: vi.fn(),
   deletePhase: vi.fn(),
+  runRuleCheck: vi.fn(),
 }))
 
 import * as api from '../api/client'
@@ -28,6 +29,14 @@ describe('Full CRUD integration', () => {
     // Mock initial data fetch
     vi.mocked(api.fetchProducts).mockResolvedValue([...products])
     vi.mocked(api.fetchStages).mockResolvedValue(lifecycleStages)
+    vi.mocked(api.runRuleCheck).mockResolvedValue({
+      checkedAt: new Date().toISOString(),
+      totalProducts: 3,
+      activeRules: 6,
+      totalMatches: 0,
+      matches: [],
+      notifications: [],
+    })
 
     const createdProduct = {
       id: 'prod_integration',

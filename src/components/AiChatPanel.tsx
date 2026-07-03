@@ -8,7 +8,7 @@ interface Message {
 }
 
 interface Props {
-  onBack: () => void
+  onClose: () => void
 }
 
 const QUICK_PROMPTS = [
@@ -18,7 +18,7 @@ const QUICK_PROMPTS = [
   { label: '退市评估', text: '哪些产品当前处于衰退期或面临退市？请给出处理优先级建议。' },
 ]
 
-export function AiChatPanel({ onBack }: Props) {
+export function AiChatPanel({ onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -77,20 +77,19 @@ export function AiChatPanel({ onBack }: Props) {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="15,18 9,12 15,6" />
-            </svg>
-          </button>
-          <div>
-            <h2 className="text-sm font-bold text-slate-800">AI 对话助手</h2>
-            <p className="text-[10px] text-slate-400">DeepSeek · PLM 智能分析 · Phase 4</p>
-          </div>
+        <div>
+          <h2 className="text-sm font-bold text-slate-800">AI 对话助手</h2>
+          <p className="text-[10px] text-slate-400">DeepSeek · PLM 智能分析 · Phase 4</p>
         </div>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {messages.every((m) => m.role === 'assistant') && (

@@ -12,6 +12,7 @@ vi.mock('../api/client', () => ({
   addPhase: vi.fn(),
   updatePhase: vi.fn(),
   deletePhase: vi.fn(),
+  runRuleCheck: vi.fn(),
 }))
 
 import * as api from '../api/client'
@@ -21,6 +22,14 @@ describe('App', () => {
     vi.clearAllMocks()
     vi.mocked(api.fetchProducts).mockResolvedValue([...products])
     vi.mocked(api.fetchStages).mockResolvedValue(lifecycleStages)
+    vi.mocked(api.runRuleCheck).mockResolvedValue({
+      checkedAt: new Date().toISOString(),
+      totalProducts: 3,
+      activeRules: 6,
+      totalMatches: 0,
+      matches: [],
+      notifications: [],
+    })
   })
 
   it('renders the app title', async () => {
@@ -33,7 +42,7 @@ describe('App', () => {
   it('renders the footer', async () => {
     render(<App />)
     await waitFor(() => {
-      expect(screen.getByText(/Phase 2/)).toBeInTheDocument()
+      expect(screen.getByText(/Phase 4/)).toBeInTheDocument()
     })
   })
 

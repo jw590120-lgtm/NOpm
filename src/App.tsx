@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { RoadmapGantt } from './components/RoadmapGantt'
 import { RuleConfigPanel } from './components/RuleConfigPanel'
 import { TimelineSimulatorPanel } from './components/TimelineSimulator'
@@ -6,8 +6,9 @@ import { NotificationCenter } from './components/NotificationCenter'
 import { AiChatPanel } from './components/AiChatPanel'
 import { ToastContainer } from './components/Toast'
 import { useProductStore } from './stores/productStore'
+import * as api from './api/client'
 
-type Page = 'roadmap' | 'rules' | 'simulate' | 'notifications' | 'chat'
+type Page = 'roadmap' | 'rules' | 'simulate'
 
 function App() {
   const [page, setPage] = useState<Page>('roadmap')
@@ -17,14 +18,44 @@ function App() {
   const productCount = useProductStore((s) => s.products.length)
   const selectedLine = useProductStore((s) => s.selectedProductLine)
 
+  // Notification drawer
+  const [notificationOpen, setNotificationOpen] = useState(false)
+  const [notificationCount, setNotificationCount] = useState(0)
+
+  // AI chat floating window
+  const [chatOpen, setChatOpen] = useState(false)
+
   useEffect(() => {
     fetchInitialData()
   }, [fetchInitialData])
 
+  // Fetch notification count on mount (for bell badge)
+  const refreshNotificationCount = useCallback(async () => {
+    try {
+      const result = await api.runRuleCheck()
+      setNotificationCount(result.totalMatches)
+    } catch {
+      // silently fail
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshNotificationCount()
+  }, [refreshNotificationCount])
+
+  const handleOpenNotifications = useCallback(() => {
+    setNotificationOpen(true)
+  }, [])
+
+  const handleCloseNotifications = useCallback(() => {
+    setNotificationOpen(false)
+    refreshNotificationCount()
+  }, [refreshNotificationCount])
+
   return (
     <div className="h-screen flex flex-col bg-slate-100">
       {/* Top Bar */}
-      <header className="flex-shrink-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-20">
+      <header className="flex-shrink-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -45,7 +76,7 @@ function App() {
             </div>
           </div>
 
-          {/* Tab Navigation */}
+          {/* Tab Navigation — only core workflows */}
           <div className="flex items-center bg-slate-100 rounded-lg p-0.5 ml-4">
             <button
               onClick={() => setPage('roadmap')}
@@ -65,18 +96,6 @@ function App() {
             >
               时间线模拟
             </button>
-            <button
-              onClick={() => setPage('notifications')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'notifications' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              通知中心
-            </button>
-            <button
-              onClick={() => setPage('chat')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'chat' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              AI 助手
-            </button>
           </div>
         </div>
 
@@ -92,33 +111,21 @@ function App() {
             </span>
           </div>
 
-          {/* AI Weekly Report button (Phase 4 placeholder) */}
+          {/* Notification Bell */}
           <button
-            disabled
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-violet-300 bg-violet-50/50 opacity-60 cursor-not-allowed select-none"
-            title="Phase 4: AI 健康检查周报"
+            onClick={handleOpenNotifications}
+            className="relative w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
+            title="通知中心"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14,2 14,8 20,8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-            </svg>
-            <span className="text-[10px] font-medium text-violet-500">AI 周报</span>
-            <span className="text-[9px] text-violet-300 bg-violet-100 px-1 py-px rounded">P4</span>
-          </button>
-
-          {/* AI Notification Bell (Phase 4 placeholder) */}
-          <button
-            disabled
-            className="relative w-8 h-8 rounded-lg border border-dashed border-violet-300 bg-violet-50/50 flex items-center justify-center opacity-60 cursor-not-allowed select-none"
-            title="Phase 4: AI 智能触发通知"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-violet-300 text-[7px] text-white font-bold flex items-center justify-center border border-white">0</span>
+            {notificationCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[8px] text-white font-bold flex items-center justify-center px-1 border border-white">
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </span>
+            )}
           </button>
 
           {/* Current date indicator */}
@@ -165,10 +172,6 @@ function App() {
           <RuleConfigPanel onBack={() => setPage('roadmap')} />
         ) : page === 'simulate' ? (
           <TimelineSimulatorPanel onBack={() => setPage('roadmap')} />
-        ) : page === 'notifications' ? (
-          <NotificationCenter onBack={() => setPage('roadmap')} />
-        ) : page === 'chat' ? (
-          <AiChatPanel onBack={() => setPage('roadmap')} />
         ) : loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
@@ -203,26 +206,55 @@ function App() {
         )}
       </main>
 
-      {/* Floating AI Chat Button (Phase 5 placeholder) */}
+      {/* Floating AI Chat Button */}
       <button
-        disabled
-        className="fixed bottom-6 right-6 w-12 h-12 rounded-full border-2 border-dashed border-violet-300 bg-violet-50 flex items-center justify-center opacity-50 cursor-not-allowed select-none shadow-lg z-50 group"
-        title="Phase 5: AI 对话助手"
+        onClick={() => setChatOpen(true)}
+        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all z-40 group ${chatOpen ? 'hidden' : ''}`}
+        title="AI 对话助手"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        {/* Tooltip */}
-        <div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-violet-600 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          AI 对话助手 · Phase 5
-          <div className="absolute top-full right-4 w-2 h-2 bg-violet-600 rotate-45" />
+        <div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-slate-800 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          AI 对话助手
+          <div className="absolute top-full right-4 w-2 h-2 bg-slate-800 rotate-45" />
         </div>
       </button>
+
+      {/* Notification Drawer Overlay */}
+      {notificationOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={handleCloseNotifications}
+          />
+          {/* Drawer */}
+          <div className="relative w-[440px] bg-white shadow-2xl h-full overflow-hidden animate-slide-in-right z-10">
+            <NotificationCenter onClose={handleCloseNotifications} />
+          </div>
+        </div>
+      )}
+
+      {/* AI Chat Floating Window Overlay */}
+      {chatOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-end p-4 pointer-events-none">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/20 pointer-events-auto"
+            onClick={() => setChatOpen(false)}
+          />
+          {/* Chat window */}
+          <div className="relative w-[420px] h-[560px] bg-white rounded-2xl shadow-2xl overflow-hidden pointer-events-auto animate-scale-in z-10">
+            <AiChatPanel onClose={() => setChatOpen(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="flex-shrink-0 h-7 bg-white border-t border-slate-100 flex items-center justify-between px-6">
         <span className="text-[10px] text-slate-400">
-          Phase 2 · 后端 API 对接
+          Phase 4 · AI 智能分析已就绪
         </span>
         <span className="text-[10px] text-slate-400">
           点击阶段色块查看工作详情

@@ -18,10 +18,10 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 interface Props {
-  onBack: () => void
+  onClose: () => void
 }
 
-export function NotificationCenter({ onBack }: Props) {
+export function NotificationCenter({ onClose }: Props) {
   const [result, setResult] = useState<CheckResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,35 +73,36 @@ export function NotificationCenter({ onBack }: Props) {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div>
+          <h2 className="text-sm font-bold text-slate-800">通知中心</h2>
+          <p className="text-[10px] text-slate-400">规则引擎全量检查 · 模板通知 · Phase 3</p>
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            onClick={onBack}
+            onClick={runCheck}
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {loading ? (
+              <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="23,4 23,10 17,10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            )}
+            {loading ? '检查中...' : '重新检查'}
+          </button>
+          <button
+            onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polyline points="15,18 9,12 15,6" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <div>
-            <h2 className="text-sm font-bold text-slate-800">通知中心</h2>
-            <p className="text-[10px] text-slate-400">规则引擎全量检查 · 模板通知 · Phase 3</p>
-          </div>
         </div>
-        <button
-          onClick={runCheck}
-          disabled={loading}
-          className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          {loading ? (
-            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="23,4 23,10 17,10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-          )}
-          {loading ? '检查中...' : '重新检查'}
-        </button>
       </div>
 
       {/* Content */}
