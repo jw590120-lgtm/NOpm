@@ -14,6 +14,7 @@ vi.mock('../api/client', () => ({
   updatePhase: vi.fn(),
   deletePhase: vi.fn(),
   runRuleCheck: vi.fn(),
+  fetchDashboardStats: vi.fn(),
 }))
 
 import * as api from '../api/client'
@@ -36,6 +37,17 @@ describe('Full CRUD integration', () => {
       totalMatches: 0,
       matches: [],
       notifications: [],
+    })
+    vi.mocked(api.fetchDashboardStats).mockResolvedValue({
+      totalProducts: 3,
+      activeProducts: 2,
+      plannedProducts: 1,
+      inDevelopment: 1,
+      upcomingLaunches: 0,
+      expiringRegistrations: 0,
+      productsInDecline: 0,
+      quarterMilestones: [],
+      phaseDistribution: [],
     })
 
     const createdProduct = {

@@ -7,6 +7,8 @@ import { ruleRouter } from './routes/rules.js'
 import { simulateRouter } from './routes/simulate.js'
 import { checkRouter } from './routes/check.js'
 import { aiRouter } from './routes/ai.js'
+import { dashboardRouter } from './routes/dashboard.js'
+import { reportRouter } from './routes/report.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -26,6 +28,8 @@ app.use('/api/rules', ruleRouter)
 app.use('/api/simulate', simulateRouter)
 app.use('/api/check', checkRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/dashboard', dashboardRouter)
+app.use('/api/report', reportRouter)
 
 app.listen(PORT, () => {
   console.log(`PLM Server running on http://localhost:${PORT}`)

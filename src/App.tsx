@@ -5,6 +5,7 @@ import { TimelineSimulatorPanel } from './components/TimelineSimulator'
 import { NotificationCenter } from './components/NotificationCenter'
 import { AiChatPanel } from './components/AiChatPanel'
 import { ToastContainer } from './components/Toast'
+import { DashboardBar } from './components/DashboardBar'
 import { useProductStore } from './stores/productStore'
 import * as api from './api/client'
 
@@ -165,6 +166,9 @@ function App() {
           </div>
         ))}
       </div>
+
+      {/* Dashboard Stats Bar — only on roadmap page */}
+      {page === 'roadmap' && <DashboardBar />}
 
       {/* Main Content */}
       <main className="flex-1 p-4 min-h-0">

@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { CheckResult } from '../types'
 import { showToast } from './Toast'
+import { WeeklyReport } from './WeeklyReport'
 import * as api from '../api/client'
 
 const mdComponents = {
@@ -59,6 +60,7 @@ export function NotificationCenter({ onClose }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [analyzingId, setAnalyzingId] = useState<string | null>(null)
   const [analyses, setAnalyses] = useState<Record<string, string>>({})
+  const [reportOpen, setReportOpen] = useState(false)
 
   const runCheck = useCallback(async () => {
     setLoading(true)
@@ -102,6 +104,7 @@ export function NotificationCenter({ onClose }: Props) {
   const healthyCount = result ? result.totalProducts - result.totalMatches : 0
 
   return (
+    <>
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
@@ -124,6 +127,16 @@ export function NotificationCenter({ onClose }: Props) {
               </svg>
             )}
             {loading ? '检查中...' : '重新检查'}
+          </button>
+          <button
+            onClick={() => setReportOpen(true)}
+            className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1"
+            title="AI 周报"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
+            </svg>
+            生成周报
           </button>
           <button
             onClick={onClose}
@@ -272,5 +285,21 @@ export function NotificationCenter({ onClose }: Props) {
         ) : null}
       </div>
     </div>
+
+    {/* Weekly Report Overlay */}
+    {reportOpen && (
+      <div className="fixed inset-0 z-[60] flex justify-end">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/40"
+          onClick={() => setReportOpen(false)}
+        />
+        {/* Panel */}
+        <div className="relative w-[540px] bg-white shadow-2xl h-full overflow-hidden animate-slide-in-right z-10">
+          <WeeklyReport onClose={() => setReportOpen(false)} />
+        </div>
+      </div>
+    )}
+    </>
   )
 }

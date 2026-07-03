@@ -1,4 +1,4 @@
-import type { Product, ProductPhase, LifecycleStage, TriggerRule, SimulationRequest, SimulationResult, CheckResult } from '../types'
+import type { Product, ProductPhase, LifecycleStage, TriggerRule, SimulationRequest, SimulationResult, CheckResult, DashboardStats } from '../types'
 
 const BASE = '/api'
 
@@ -117,6 +117,12 @@ export function runRuleCheck(): Promise<CheckResult> {
   return request<CheckResult>('/check', { method: 'POST' })
 }
 
+// ── Dashboard ──
+
+export function fetchDashboardStats(): Promise<DashboardStats> {
+  return request<DashboardStats>('/dashboard/stats')
+}
+
 // ── AI ──
 
 export interface AiChatResult {
@@ -156,4 +162,10 @@ export function aiAnalyzeProduct(productId: string): Promise<{ analysis: string 
     method: 'POST',
     body: JSON.stringify({ productId }),
   })
+}
+
+// ── Report ──
+
+export function generateWeeklyReport(): Promise<{ report: string }> {
+  return request<{ report: string }>('/report/weekly', { method: 'POST' })
 }

@@ -109,3 +109,15 @@ export interface CheckResult {
   matches: RuleMatch[]
   notifications: TemplateNotification[]
 }
+
+export interface DashboardStats {
+  totalProducts: number
+  activeProducts: number
+  plannedProducts: number
+  inDevelopment: number
+  upcomingLaunches: number
+  expiringRegistrations: number
+  productsInDecline: number
+  quarterMilestones: { label: string; productName: string; stageName: string; year: number }[]
+  phaseDistribution: { stageId: string; count: number }[]
+}
