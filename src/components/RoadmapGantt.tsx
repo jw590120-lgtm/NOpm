@@ -10,7 +10,7 @@ const START_YEAR = 2018
 const END_YEAR = 2045
 const YEAR_WIDTH = 64
 const ROW_HEIGHT = 64
-const LABEL_WIDTH = 180
+const LABEL_WIDTH = 200
 const HEADER_HEIGHT = 48
 const TODAY_YEAR = 2026
 
@@ -155,7 +155,7 @@ export function RoadmapGantt() {
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-semibold text-slate-800 truncate">{product.name}</span>
+                  <span className="text-sm font-semibold text-slate-800 whitespace-nowrap">{product.name}</span>
                   <span
                     className={`inline-flex text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
                       STATUS_LABELS[product.type]?.className ?? ''

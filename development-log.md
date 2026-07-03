@@ -115,7 +115,7 @@
 | **2.2** | 生命周期阶段模板 API | ✅ 已完成 (07-02) |
 | **2.3** | 前端对接后端 API | ✅ 已完成 (07-02) |
 | **2.4** | 触发规则配置页面 | ✅ 已完成 (07-02) |
-| **2.5** | 新产品时间线模拟 | 待开始 |
+| **2.5** | 新产品时间线模拟 | ✅ 已完成 (07-03) |
 
 ### 步骤 2.1 待办
 
@@ -159,6 +159,21 @@
 - [x] 新建 `RuleConfigPanel.test.tsx` — 7 个测试
 - [x] 32 个测试全部通过 + TypeScript 检查通过 + Vite build 成功
 
+### 步骤 2.5 待办
+
+- [x] 后端：`server/src/services/timelineSimulator.ts` — 时间线模拟核心算法
+- [x] 后端：`server/src/routes/simulate.ts` — POST /api/simulate 接口
+- [x] 后端：在 `index.ts` 注册路由 + 验证通过（生成 8 阶段时间线）
+- [x] 前端：`src/types/index.ts` 添加 `SimulationRequest` / `SimulationResult` 类型
+- [x] 前端：`src/api/client.ts` 添加 `simulateTimeline` 方法
+- [x] 前端：`TimelineSimulatorPanel` 组件 — 参数配置 + 甘特图预览 + 年份微调 + 保存为产品
+- [x] 前端：`App.tsx` 添加"时间线模拟"Tab
+- [x] 32 个测试全部通过 + TypeScript 检查通过 + Vite build 成功
+
+---
+
+## Phase 2 ✅ 全部完成
+
 ---
 
 ## 决策记录
@@ -179,4 +194,4 @@
 
 ---
 
-*当前步骤：2.4 ✅ 完成 → 准备 2.5（新产品时间线模拟）*
+*Phase 2 全部完成 ✅ → 准备 Phase 3（定时触发检查 + 模板通知）*

@@ -3,6 +3,7 @@ import cors from 'cors'
 import { productRouter } from './routes/products.js'
 import { stageRouter } from './routes/stages.js'
 import { ruleRouter } from './routes/rules.js'
+import { simulateRouter } from './routes/simulate.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -19,6 +20,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/products', productRouter)
 app.use('/api/stages', stageRouter)
 app.use('/api/rules', ruleRouter)
+app.use('/api/simulate', simulateRouter)
 
 app.listen(PORT, () => {
   console.log(`PLM Server running on http://localhost:${PORT}`)

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { RoadmapGantt } from './components/RoadmapGantt'
 import { RuleConfigPanel } from './components/RuleConfigPanel'
+import { TimelineSimulatorPanel } from './components/TimelineSimulator'
 import { ToastContainer } from './components/Toast'
 import { useProductStore } from './stores/productStore'
 
-type Page = 'roadmap' | 'rules'
+type Page = 'roadmap' | 'rules' | 'simulate'
 
 function App() {
   const [page, setPage] = useState<Page>('roadmap')
@@ -55,6 +56,12 @@ function App() {
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'rules' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               触发规则
+            </button>
+            <button
+              onClick={() => setPage('simulate')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'simulate' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              时间线模拟
             </button>
           </div>
         </div>
@@ -142,6 +149,8 @@ function App() {
       <main className="flex-1 p-4 min-h-0">
         {page === 'rules' ? (
           <RuleConfigPanel onBack={() => setPage('roadmap')} />
+        ) : page === 'simulate' ? (
+          <TimelineSimulatorPanel onBack={() => setPage('roadmap')} />
         ) : loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">

@@ -1,4 +1,4 @@
-import type { Product, ProductPhase, LifecycleStage, TriggerRule } from '../types'
+import type { Product, ProductPhase, LifecycleStage, TriggerRule, SimulationRequest, SimulationResult } from '../types'
 
 const BASE = '/api'
 
@@ -99,5 +99,14 @@ export function updateRule(id: string, patch: Partial<TriggerRule>): Promise<Tri
 export function deleteRule(id: string): Promise<TriggerRule> {
   return request<TriggerRule>(`/rules/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+  })
+}
+
+// ── Simulation ──
+
+export function simulateTimeline(data: SimulationRequest): Promise<SimulationResult> {
+  return request<SimulationResult>('/simulate', {
+    method: 'POST',
+    body: JSON.stringify(data),
   })
 }

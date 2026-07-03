@@ -60,3 +60,22 @@ export interface TriggerRule {
   priority: 'high' | 'medium' | 'low'
   enabled: boolean
 }
+
+// ── Simulation ──
+
+export interface SimulationRequest {
+  referenceProductId: string
+  triggerStageId: string
+  triggerOffset: 'start' | 'end'
+  offsetYears: number
+  productName: string
+  productLine: string
+}
+
+export interface SimulationResult {
+  productName: string
+  productLine: string
+  triggerPoint: number
+  referenceProductName: string
+  phases: ProductPhase[]
+}
