@@ -25,6 +25,12 @@ interface ProductStore {
   addPhase: (productId: string, phase: Omit<ProductPhase, 'id'>) => Promise<void>
   updatePhase: (productId: string, phaseId: string, patch: Partial<Omit<ProductPhase, 'id'>>) => Promise<void>
   deletePhase: (productId: string, phaseId: string) => Promise<void>
+
+  // Stage CRUD
+  refreshStages: () => Promise<void>
+  createStage: (data: Omit<LifecycleStage, 'id'>) => Promise<LifecycleStage>
+  updateStage: (id: string, patch: Partial<Omit<LifecycleStage, 'id'>>) => Promise<void>
+  deleteStage: (id: string) => Promise<void>
 }
 
 function deriveProductLines(products: Product[]): string[] {
@@ -107,6 +113,31 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     const updated = await api.deletePhase(productId, phaseId)
     set((s) => ({
       products: s.products.map((p) => (p.id === productId ? updated : p)),
+    }))
+  },
+
+  refreshStages: async () => {
+    const stages = await api.fetchStages()
+    set({ stages })
+  },
+
+  createStage: async (data) => {
+    const stage = await api.createStage(data)
+    set((s) => ({ stages: [...s.stages, stage] }))
+    return stage
+  },
+
+  updateStage: async (id, patch) => {
+    const updated = await api.updateStage(id, patch)
+    set((s) => ({
+      stages: s.stages.map((st) => (st.id === id ? updated : st)),
+    }))
+  },
+
+  deleteStage: async (id) => {
+    await api.deleteStage(id)
+    set((s) => ({
+      stages: s.stages.filter((st) => st.id !== id),
     }))
   },
 }))

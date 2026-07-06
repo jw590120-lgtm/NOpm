@@ -76,6 +76,26 @@ export function fetchStages(): Promise<LifecycleStage[]> {
   return request<LifecycleStage[]>('/stages')
 }
 
+export function createStage(data: Omit<LifecycleStage, 'id'>): Promise<LifecycleStage> {
+  return request<LifecycleStage>('/stages', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateStage(id: string, patch: Partial<Omit<LifecycleStage, 'id'>>): Promise<LifecycleStage> {
+  return request<LifecycleStage>(`/stages/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })
+}
+
+export function deleteStage(id: string): Promise<LifecycleStage> {
+  return request<LifecycleStage>(`/stages/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}
+
 // ── Rules ──
 
 export function fetchRules(): Promise<TriggerRule[]> {

@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { RoadmapGantt } from './components/RoadmapGantt'
 import { RuleConfigPanel } from './components/RuleConfigPanel'
 import { TimelineSimulatorPanel } from './components/TimelineSimulator'
+import { StageTemplatePanel } from './components/StageTemplatePanel'
 import { NotificationCenter } from './components/NotificationCenter'
 import { AiChatPanel } from './components/AiChatPanel'
 import { ToastContainer } from './components/Toast'
@@ -9,7 +10,7 @@ import { DashboardBar } from './components/DashboardBar'
 import { useProductStore } from './stores/productStore'
 import * as api from './api/client'
 
-type Page = 'roadmap' | 'rules' | 'simulate'
+type Page = 'roadmap' | 'rules' | 'simulate' | 'templates'
 
 function App() {
   const [page, setPage] = useState<Page>('roadmap')
@@ -18,6 +19,10 @@ function App() {
   const error = useProductStore((s) => s.error)
   const productCount = useProductStore((s) => s.products.length)
   const selectedLine = useProductStore((s) => s.selectedProductLine)
+  const stages = useProductStore((s) => s.stages)
+
+  // Sort stages by order for legend display
+  const sortedStages = useMemo(() => [...stages].sort((a, b) => a.order - b.order), [stages])
 
   // Notification drawer
   const [notificationOpen, setNotificationOpen] = useState(false)
@@ -97,6 +102,12 @@ function App() {
             >
               时间线模拟
             </button>
+            <button
+              onClick={() => setPage('templates')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'templates' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              生命周期模板
+            </button>
           </div>
         </div>
 
@@ -145,23 +156,14 @@ function App() {
         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mr-1">
           阶段:
         </span>
-        {[
-          { label: '概念与立项', color: '#3B82F6' },
-          { label: '设计开发', color: '#6366F1' },
-          { label: '递交注册', color: '#8B5CF6' },
-          { label: '产品上市', color: '#10B981' },
-          { label: '销售成长期', color: '#06B6D4' },
-          { label: '销售成熟期', color: '#F59E0B' },
-          { label: '衰退期', color: '#EF4444' },
-          { label: '正式退市', color: '#6B7280' },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center gap-1.5 flex-shrink-0">
+        {sortedStages.map((stage) => (
+          <div key={stage.id} className="flex items-center gap-1.5 flex-shrink-0">
             <div
               className="w-2.5 h-2.5 rounded-sm"
-              style={{ backgroundColor: item.color }}
+              style={{ backgroundColor: stage.color }}
             />
             <span className="text-[11px] text-slate-500 whitespace-nowrap">
-              {item.label}
+              {stage.name}
             </span>
           </div>
         ))}
@@ -176,6 +178,8 @@ function App() {
           <RuleConfigPanel onBack={() => setPage('roadmap')} />
         ) : page === 'simulate' ? (
           <TimelineSimulatorPanel onBack={() => setPage('roadmap')} />
+        ) : page === 'templates' ? (
+          <StageTemplatePanel />
         ) : loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">

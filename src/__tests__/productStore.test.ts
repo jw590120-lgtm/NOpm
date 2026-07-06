@@ -11,6 +11,9 @@ vi.mock('../api/client', () => ({
   addPhase: vi.fn(),
   updatePhase: vi.fn(),
   deletePhase: vi.fn(),
+  createStage: vi.fn(),
+  updateStage: vi.fn(),
+  deleteStage: vi.fn(),
 }))
 
 import * as api from '../api/client'
