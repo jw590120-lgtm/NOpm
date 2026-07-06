@@ -38,6 +38,35 @@ describe('RoadmapGantt filter', () => {
       expect(screen.getByText('产品A')).toBeInTheDocument()
       expect(screen.getByText('产品C')).toBeInTheDocument()
     })
+
+    it('supports multi-select: shows products from both selected lines', () => {
+      render(<RoadmapGantt />)
+      fireEvent.click(screen.getByText('A系列'))
+      fireEvent.click(screen.getByText('B系列'))
+      expect(screen.getByText('产品A')).toBeInTheDocument()
+      expect(screen.getByText('产品B')).toBeInTheDocument()
+      expect(screen.getByText('产品C')).toBeInTheDocument()
+    })
+
+    it('supports multi-select: toggling a line off removes its products', () => {
+      render(<RoadmapGantt />)
+      fireEvent.click(screen.getByText('A系列'))
+      fireEvent.click(screen.getByText('B系列'))
+      fireEvent.click(screen.getByText('B系列'))
+      expect(screen.getByText('产品A')).toBeInTheDocument()
+      expect(screen.getByText('产品B')).toBeInTheDocument()
+      expect(screen.queryByText('产品C')).not.toBeInTheDocument()
+    })
+
+    it('selecting all lines individually shows all products', () => {
+      render(<RoadmapGantt />)
+      fireEvent.click(screen.getByText('A系列'))
+      fireEvent.click(screen.getByText('B系列'))
+      // Both lines selected → all products visible
+      expect(screen.getByText('产品A')).toBeInTheDocument()
+      expect(screen.getByText('产品B')).toBeInTheDocument()
+      expect(screen.getByText('产品C')).toBeInTheDocument()
+    })
   })
 
   describe('stage filter', () => {

@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express'
-import { readCollection, seedIfEmpty } from '../storage.js'
+import { readCollection, writeCollection, seedIfEmpty } from '../storage.js'
 import { products as seedProducts, rules as seedRules } from '../seed.js'
 import { checkAllRules } from '../services/ruleEngine.js'
 import { generateAllNotifications } from '../services/notifications.js'
@@ -15,14 +15,18 @@ router.post('/', (_req: Request, res: Response) => {
     const matches = checkAllRules(rules, products)
     const notifications = generateAllNotifications(matches)
 
-    res.json({
+    const result = {
       checkedAt: new Date().toISOString(),
       totalProducts: products.length,
       activeRules: rules.filter((r) => r.enabled).length,
       totalMatches: matches.length,
       matches,
       notifications,
-    })
+    }
+
+    writeCollection('notifications', [result])
+
+    res.json(result)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Check failed'
     res.status(500).json({ error: message })

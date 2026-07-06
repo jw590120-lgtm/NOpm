@@ -62,6 +62,21 @@ export function NotificationCenter({ onClose }: Props) {
   const [analyses, setAnalyses] = useState<Record<string, string>>({})
   const [reportOpen, setReportOpen] = useState(false)
 
+  const loadPersisted = useCallback(async () => {
+    setError(null)
+    try {
+      const data = await api.fetchNotifications()
+      setResult(data.checkedAt ? data : null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '加载通知失败'
+      setError(msg)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadPersisted()
+  }, [loadPersisted])
+
   const runCheck = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -81,10 +96,6 @@ export function NotificationCenter({ onClose }: Props) {
       setLoading(false)
     }
   }, [])
-
-  useEffect(() => {
-    runCheck()
-  }, [runCheck])
 
   const handleAiAnalyze = useCallback(async (notification: Record<string, unknown>) => {
     const n = notification as { match: { ruleId: string; productId: string } }
@@ -162,11 +173,22 @@ export function NotificationCenter({ onClose }: Props) {
               </svg>
             </div>
             <p className="text-sm text-red-500">{error}</p>
-            <button onClick={runCheck} className="px-4 py-2 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600">
+            <button onClick={loadPersisted} className="px-4 py-2 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600">
               重试
             </button>
           </div>
-        ) : result ? (
+        ) : !result ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-slate-600">暂无通知数据</p>
+            <p className="text-xs text-slate-400">点击「重新检查」运行规则引擎</p>
+          </div>
+        ) : (
           <div className="space-y-4">
             {/* Summary cards */}
             <div className="grid grid-cols-4 gap-3 mb-2">
@@ -192,7 +214,7 @@ export function NotificationCenter({ onClose }: Props) {
 
             {/* Check timestamp */}
             <div className="text-[10px] text-slate-400 px-1">
-              检查时间：{new Date(result.checkedAt).toLocaleString('zh-CN')}
+              上次检查时间：{result.checkedAt ? new Date(result.checkedAt).toLocaleString('zh-CN') : '—'}
             </div>
 
             {/* Notifications */}
@@ -282,7 +304,7 @@ export function NotificationCenter({ onClose }: Props) {
               </div>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
 

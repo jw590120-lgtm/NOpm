@@ -35,10 +35,10 @@ function App() {
     fetchInitialData()
   }, [fetchInitialData])
 
-  // Fetch notification count on mount (for bell badge)
+  // Fetch notification count on mount (for bell badge) from persisted data
   const refreshNotificationCount = useCallback(async () => {
     try {
-      const result = await api.runRuleCheck()
+      const result = await api.fetchNotifications()
       setNotificationCount(result.totalMatches)
     } catch {
       // silently fail

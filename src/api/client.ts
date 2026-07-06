@@ -137,6 +137,10 @@ export function runRuleCheck(): Promise<CheckResult> {
   return request<CheckResult>('/check', { method: 'POST' })
 }
 
+export function fetchNotifications(): Promise<CheckResult> {
+  return request<CheckResult>('/notifications')
+}
+
 // ── Dashboard ──
 
 export function fetchDashboardStats(): Promise<DashboardStats> {

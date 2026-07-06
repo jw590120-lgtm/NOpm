@@ -88,24 +88,11 @@ export function StageDetailDrawer({ open, product, phase, stage, onClose }: Prop
         {product && phase && stage ? (
           <>
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-5 border-b border-slate-100">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: stage.color }} />
+            <div className="flex-shrink-0 px-6 pt-5 pb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3.5 h-3.5 rounded" style={{ backgroundColor: stage.color }} />
                   <h2 className="text-lg font-bold text-slate-800">{stage.name}</h2>
-                  {!editingPhase && (
-                    <span
-                      className={`inline-flex text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                        phase.status === 'active'
-                          ? 'bg-green-100 text-green-700'
-                          : phase.status === 'completed'
-                            ? 'bg-slate-100 text-slate-500'
-                            : 'bg-amber-100 text-amber-600'
-                      }`}
-                    >
-                      {PHASE_STATUS_LABELS[phase.status]}
-                    </span>
-                  )}
                 </div>
                 <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -128,13 +115,23 @@ export function StageDetailDrawer({ open, product, phase, stage, onClose }: Prop
                   <button onClick={() => setEditingPhase(false)} className="px-3 py-1 bg-slate-100 rounded text-xs">取消</button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-4 text-sm text-slate-500">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
                     <span className="font-medium text-slate-700">{product.name}</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
-                    <span>{phase.startYear} ~ {phase.endYear}</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
-                    <span>约 {phase.endYear - phase.startYear} 年</span>
+                    <span className="text-slate-300">·</span>
+                    <span>{phase.startYear} - {phase.endYear}</span>
+                    <span className="text-slate-300">·</span>
+                    <span
+                      className={`inline-flex text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                        phase.status === 'active'
+                          ? 'bg-green-100 text-green-700'
+                          : phase.status === 'completed'
+                            ? 'bg-slate-100 text-slate-500'
+                            : 'bg-amber-100 text-amber-600'
+                      }`}
+                    >
+                      {PHASE_STATUS_LABELS[phase.status]}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={startEditing} className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors" title="编辑阶段">
@@ -154,11 +151,14 @@ export function StageDetailDrawer({ open, product, phase, stage, onClose }: Prop
               )}
             </div>
 
+            {/* Separator */}
+            <div className="border-t border-slate-200 mx-6" />
+
             {/* Sub-stages list */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  阶段工作项 · {stage.subStages.length} 项
+                  子阶段工作项 ({stage.subStages.length})
                 </h3>
                 <button onClick={handleAddPhase} className="text-[10px] text-blue-500 font-medium hover:text-blue-600 transition-colors">
                   + 新增阶段

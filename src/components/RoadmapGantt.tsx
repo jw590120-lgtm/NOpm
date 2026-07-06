@@ -38,14 +38,25 @@ export function RoadmapGantt() {
   const products = useProductStore((s) => s.products)
   const stages = useProductStore((s) => s.stages)
   const productLines = useProductStore((s) => s.productLines)
-  const selectedLine = useProductStore((s) => s.selectedProductLine)
-  const setSelectedLine = useProductStore((s) => s.setSelectedProductLine)
   const deleteProduct = useProductStore((s) => s.deleteProduct)
+
+  // Multi-select product line filter (local state, no longer uses store)
+  const [selectedLines, setSelectedLines] = useState<string[]>([])
+
+  // Tooltip state for phase block hover
+  const [tooltip, setTooltip] = useState<{
+    x: number
+    y: number
+    productName: string
+    stageName: string
+    startYear: number
+    endYear: number
+  } | null>(null)
 
   const filteredProducts = useMemo(() => {
     let result = products
-    // 1. Product line filter
-    if (selectedLine) result = result.filter((p) => p.productLine === selectedLine)
+    // 1. Product line filter (multi-select)
+    if (selectedLines.length > 0) result = result.filter((p) => selectedLines.includes(p.productLine))
     // 2. Stage filter: product matches if any of its phases has the selected stageId
     if (selectedStageId) result = result.filter((p) => p.phases.some((ph) => ph.stageId === selectedStageId))
     // 3. Year range filter: product matches if any phase overlaps with the selected range
@@ -57,13 +68,13 @@ export function RoadmapGantt() {
       )
     }
     return result
-  }, [products, selectedLine, selectedStageId, yearRange])
+  }, [products, selectedLines, selectedStageId, yearRange])
 
   const hasActiveFilters =
-    selectedLine !== null || selectedStageId !== null || yearRange.start !== null || yearRange.end !== null
+    selectedLines.length > 0 || selectedStageId !== null || yearRange.start !== null || yearRange.end !== null
 
   const clearAllFilters = () => {
-    setSelectedLine(null)
+    setSelectedLines([])
     setSelectedStageId(null)
     setYearRange({ start: null, end: null })
   }
@@ -258,16 +269,17 @@ export function RoadmapGantt() {
   )
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <>
+      <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Top: Filter & Controls Bar */}
       <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50/80">
         {/* Row 1: Product line filter */}
         <div className="flex items-center gap-3 px-4 py-2">
           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mr-1">产品线</span>
           <button
-            onClick={() => setSelectedLine(null)}
+            onClick={() => setSelectedLines([])}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              selectedLine === null
+              selectedLines.length === 0
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-slate-500 hover:bg-slate-100'
             }`}
@@ -277,9 +289,13 @@ export function RoadmapGantt() {
           {productLines.map((line) => (
             <button
               key={line}
-              onClick={() => setSelectedLine(line)}
+              onClick={() =>
+                setSelectedLines((prev) =>
+                  prev.includes(line) ? prev.filter((l) => l !== line) : [...prev, line],
+                )
+              }
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                selectedLine === line
+                selectedLines.includes(line)
                   ? 'bg-blue-100 text-blue-700'
                   : 'text-slate-500 hover:bg-slate-100'
               }`}
@@ -587,7 +603,22 @@ export function RoadmapGantt() {
                             : 'none',
                       }}
                       onClick={() => setSelectedStage({ product, phase })}
-                      title={`${stage.name}: ${phase.startYear} - ${phase.endYear}`}
+                      onMouseEnter={(e) =>
+                        setTooltip({
+                          x: e.clientX,
+                          y: e.clientY,
+                          productName: product.name,
+                          stageName: stage.name,
+                          startYear: phase.startYear,
+                          endYear: phase.endYear,
+                        })
+                      }
+                      onMouseMove={(e) =>
+                        setTooltip((prev) =>
+                          prev ? { ...prev, x: e.clientX, y: e.clientY } : null,
+                        )
+                      }
+                      onMouseLeave={() => setTooltip(null)}
                     >
                       <div className="h-full flex items-center px-2 overflow-hidden">
                         <span
@@ -690,6 +721,18 @@ export function RoadmapGantt() {
           </div>
         </>
       )}
-    </div>
+      </div>
+      {tooltip && (
+        <div
+          className="fixed pointer-events-none z-[100] px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-lg"
+          style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
+        >
+          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-slate-800" />
+          <div className="font-semibold text-white">{tooltip.productName}</div>
+          <div className="text-slate-300">{tooltip.stageName}</div>
+          <div className="text-slate-400">{tooltip.startYear} - {tooltip.endYear}</div>
+        </div>
+      )}
+    </>
   )
 }

@@ -6,6 +6,7 @@ import { stageRouter } from './routes/stages.js'
 import { ruleRouter } from './routes/rules.js'
 import { simulateRouter } from './routes/simulate.js'
 import { checkRouter } from './routes/check.js'
+import { notificationRouter } from './routes/notifications.js'
 import { aiRouter } from './routes/ai.js'
 import { dashboardRouter } from './routes/dashboard.js'
 import { reportRouter } from './routes/report.js'
@@ -27,6 +28,7 @@ app.use('/api/stages', stageRouter)
 app.use('/api/rules', ruleRouter)
 app.use('/api/simulate', simulateRouter)
 app.use('/api/check', checkRouter)
+app.use('/api/notifications', notificationRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/report', reportRouter)
