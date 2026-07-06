@@ -448,7 +448,7 @@ export function StageTemplatePanel() {
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">生命周期模板管理</h2>
+          <h2 className="text-sm font-bold text-slate-800">生命周期阶段管理</h2>
           <p className="text-[10px] text-slate-400">
             管理产品生命周期阶段模板 · 共 {sortedStages.length} 个阶段
           </p>

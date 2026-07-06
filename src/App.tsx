@@ -106,7 +106,7 @@ function App() {
               onClick={() => setPage('templates')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${page === 'templates' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              生命周期模板
+              生命周期阶段
             </button>
           </div>
         </div>
