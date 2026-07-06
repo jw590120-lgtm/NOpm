@@ -36,13 +36,13 @@ const mdComponents = {
     return <table className="w-full border-collapse my-3 text-sm text-slate-600">{children}</table>
   },
   thead({ children }: { children: React.ReactNode }) {
-    return <thead className="bg-slate-50 print:bg-gray-100">{children}</thead>
+    return <thead className="bg-slate-50">{children}</thead>
   },
   th({ children }: { children: React.ReactNode }) {
-    return <th className="border border-slate-300 px-3 py-1.5 text-left font-semibold text-slate-700 print:text-black print:border-gray-400">{children}</th>
+    return <th className="border border-slate-300 px-3 py-1.5 text-left font-semibold text-slate-700">{children}</th>
   },
   td({ children }: { children: React.ReactNode }) {
-    return <td className="border border-slate-300 px-3 py-1.5 print:text-black print:border-gray-400">{children}</td>
+    return <td className="border border-slate-300 px-3 py-1.5">{children}</td>
   },
 }
 
@@ -223,8 +223,70 @@ export function WeeklyReport({ onClose }: Props) {
 
   const handleExportPdf = useCallback(() => {
     if (!report) return
-    window.print()
-  }, [report])
+    const title = 'AI 健康检查周报'
+    const timestamp = generatedAt || new Date().toLocaleString('zh-CN')
+    const htmlContent = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    @page { margin: 2cm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #1a1a1a;
+      line-height: 1.8;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    h1 { text-align: center; font-size: 22pt; margin-bottom: 4px; }
+    h2 { font-size: 16pt; color: #222; margin: 20px 0 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    h3 { font-size: 13pt; color: #333; margin: 14px 0 4px; }
+    p { margin: 6px 0; font-size: 12pt; }
+    ul, ol { padding-left: 24px; }
+    li { margin-bottom: 4px; font-size: 12pt; }
+    strong { color: #1a1a1a; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid #666; padding: 6px 10px; text-align: left; font-size: 11pt; }
+    th { background: #f0f0f0; font-weight: bold; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: "SF Mono", monospace; font-size: 10pt; }
+    pre { background: #f7f7f7; padding: 12px; border-radius: 6px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    blockquote { border-left: 3px solid #88b; padding-left: 12px; color: #555; margin: 10px 0; }
+    .timestamp { text-align: center; color: #888; font-size: 10pt; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <p class="timestamp">生成时间：${timestamp}</p>
+  ${markdownToSimpleHtml(report)}
+</body>
+</html>`
+
+    const w = window.open('', '_blank', 'width=900,height=700')
+    if (!w) {
+      showToast('请允许浏览器弹窗以导出 PDF', 'error')
+      return
+    }
+    w.document.write(htmlContent)
+    w.document.close()
+    w.focus()
+    // Wait for content to render, then trigger print
+    w.onload = () => {
+      setTimeout(() => {
+        w.print()
+      }, 300)
+    }
+    // If onload already fired (cached), trigger immediately
+    if (w.document.readyState === 'complete') {
+      setTimeout(() => {
+        w.print()
+      }, 300)
+    }
+  }, [report, generatedAt])
 
   const handleExportWord = useCallback(() => {
     if (!report) return
@@ -250,23 +312,16 @@ export function WeeklyReport({ onClose }: Props) {
   }, [report, generatedAt])
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { margin: 2cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-      `}} />
-      <div className="h-full flex flex-col bg-white print:bg-white">
+    <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 flex items-center justify-between print:border-none print:py-3">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-800 print:text-xl print:font-bold print:text-black">AI 健康检查周报</h2>
-          <p className="text-[10px] text-slate-400 print:text-xs print:text-gray-600">
+          <h2 className="text-sm font-bold text-slate-800">AI 健康检查周报</h2>
+          <p className="text-[10px] text-slate-400">
             {generatedAt ? `生成时间：${generatedAt}` : '基于规则引擎检查结果，由 AI 自动生成'}
           </p>
         </div>
-        <div className="flex items-center gap-2 print:hidden">
+        <div className="flex items-center gap-2">
           {report && (
             <>
               <button
@@ -346,9 +401,9 @@ export function WeeklyReport({ onClose }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 print:overflow-visible print:p-0">
+      <div className="flex-1 overflow-auto p-6">
         {error ? (
-          <div className="print:hidden flex flex-col items-center justify-center h-full gap-4">
+          <div className="flex flex-col items-center justify-center h-full gap-4">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -362,15 +417,15 @@ export function WeeklyReport({ onClose }: Props) {
             </button>
           </div>
         ) : report ? (
-          <div className="max-w-3xl mx-auto print:max-w-none print:p-0 print:text-black">
-            <div className="prose prose-sm prose-slate max-w-none print:prose-base print:text-black print:[&_*]:text-black">
+          <div className="max-w-3xl mx-auto">
+            <div className="prose prose-sm prose-slate max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
                 {report}
               </ReactMarkdown>
             </div>
           </div>
         ) : (
-          <div className="print:hidden flex flex-col items-center justify-center h-full gap-6">
+          <div className="flex flex-col items-center justify-center h-full gap-6">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -390,6 +445,5 @@ export function WeeklyReport({ onClose }: Props) {
         )}
       </div>
     </div>
-    </>
   )
 }
