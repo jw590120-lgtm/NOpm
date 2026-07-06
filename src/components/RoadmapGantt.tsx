@@ -30,6 +30,9 @@ export function RoadmapGantt() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
 
+  const [selectedStageId, setSelectedStageId] = useState<string | null>(null)
+  const [yearRange, setYearRange] = useState<{ start: number | null; end: number | null }>({ start: null, end: null })
+
   const products = useProductStore((s) => s.products)
   const stages = useProductStore((s) => s.stages)
   const productLines = useProductStore((s) => s.productLines)
@@ -37,9 +40,35 @@ export function RoadmapGantt() {
   const setSelectedLine = useProductStore((s) => s.setSelectedProductLine)
   const deleteProduct = useProductStore((s) => s.deleteProduct)
 
-  const filteredProducts = useMemo(
-    () => (selectedLine ? products.filter((p) => p.productLine === selectedLine) : products),
-    [products, selectedLine],
+  const filteredProducts = useMemo(() => {
+    let result = products
+    // 1. Product line filter
+    if (selectedLine) result = result.filter((p) => p.productLine === selectedLine)
+    // 2. Stage filter: product matches if any of its phases has the selected stageId
+    if (selectedStageId) result = result.filter((p) => p.phases.some((ph) => ph.stageId === selectedStageId))
+    // 3. Year range filter: product matches if any phase overlaps with the selected range
+    if (yearRange.start !== null || yearRange.end !== null) {
+      const rangeStart = yearRange.start ?? -Infinity
+      const rangeEnd = yearRange.end ?? Infinity
+      result = result.filter((p) =>
+        p.phases.some((ph) => ph.startYear <= rangeEnd && ph.endYear >= rangeStart),
+      )
+    }
+    return result
+  }, [products, selectedLine, selectedStageId, yearRange])
+
+  const hasActiveFilters =
+    selectedLine !== null || selectedStageId !== null || yearRange.start !== null || yearRange.end !== null
+
+  const clearAllFilters = () => {
+    setSelectedLine(null)
+    setSelectedStageId(null)
+    setYearRange({ start: null, end: null })
+  }
+
+  const yearOptions = useMemo(
+    () => Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, i) => START_YEAR + i),
+    [],
   )
 
   const stageMap = useMemo(() => new Map(stages.map((s) => [s.id, s])), [stages])
@@ -66,46 +95,123 @@ export function RoadmapGantt() {
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Top: Filter & Controls Bar */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50/80">
-        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mr-1">产品线</span>
-        <button
-          onClick={() => setSelectedLine(null)}
-          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-            selectedLine === null
-              ? 'bg-blue-100 text-blue-700'
-              : 'text-slate-500 hover:bg-slate-100'
-          }`}
-        >
-          📋 全部产品线
-        </button>
-        {productLines.map((line) => (
+      <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50/80">
+        {/* Row 1: Product line filter */}
+        <div className="flex items-center gap-3 px-4 py-2">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mr-1">产品线</span>
           <button
-            key={line}
-            onClick={() => setSelectedLine(line)}
+            onClick={() => setSelectedLine(null)}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-              selectedLine === line
+              selectedLine === null
                 ? 'bg-blue-100 text-blue-700'
                 : 'text-slate-500 hover:bg-slate-100'
             }`}
           >
-            <span
-              className="inline-block w-2 h-2 rounded-full mr-1.5"
-              style={{ backgroundColor: '#3B82F6' }}
-            />
-            {line}
+            全部产品线
           </button>
-        ))}
-        <div className="flex-1" />
-        <button
-          onClick={() => setShowAddDialog(true)}
-          className="flex items-center gap-1 px-3 py-1 rounded-lg border-2 border-dashed border-blue-200 text-xs font-medium text-blue-500 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          新建产品
-        </button>
+          {productLines.map((line) => (
+            <button
+              key={line}
+              onClick={() => setSelectedLine(line)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                selectedLine === line
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full mr-1.5"
+                style={{ backgroundColor: '#3B82F6' }}
+              />
+              {line}
+            </button>
+          ))}
+          <div className="flex-1" />
+          {hasActiveFilters && (
+            <button
+              onClick={clearAllFilters}
+              className="px-3 py-1 rounded-md text-xs font-medium text-rose-500 hover:bg-rose-50 transition-colors"
+            >
+              清除全部筛选
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddDialog(true)}
+            className="flex items-center gap-1 px-3 py-1 rounded-lg border-2 border-dashed border-blue-200 text-xs font-medium text-blue-500 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            新建产品
+          </button>
+        </div>
+
+        {/* Row 2: Stage filter + Year range filter */}
+        <div className="flex items-center gap-3 px-4 pt-0 pb-2">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mr-1">阶段</span>
+          <button
+            onClick={() => setSelectedStageId(null)}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              selectedStageId === null
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            全部阶段
+          </button>
+          {stages.map((stage) => (
+            <button
+              key={stage.id}
+              onClick={() => setSelectedStageId(selectedStageId === stage.id ? null : stage.id)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                selectedStageId === stage.id
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <span
+                className="inline-block w-2 h-2 rounded-full mr-1.5"
+                style={{ backgroundColor: stage.color }}
+              />
+              {stage.name}
+            </button>
+          ))}
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider ml-4 mr-1">时间</span>
+          <select
+            value={yearRange.start ?? ''}
+            onChange={(e) =>
+              setYearRange((prev) => ({ ...prev, start: e.target.value ? Number(e.target.value) : null }))
+            }
+            className="px-2 py-1 rounded-md text-xs border border-slate-200 bg-white text-slate-600 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+          >
+            <option value="">起始年</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <span className="text-xs text-slate-400">至</span>
+          <select
+            value={yearRange.end ?? ''}
+            onChange={(e) =>
+              setYearRange((prev) => ({ ...prev, end: e.target.value ? Number(e.target.value) : null }))
+            }
+            className="px-2 py-1 rounded-md text-xs border border-slate-200 bg-white text-slate-600 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+          >
+            <option value="">结束年</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          {(yearRange.start !== null || yearRange.end !== null) && (
+            <button
+              onClick={() => setYearRange({ start: null, end: null })}
+              className="px-2 py-1 rounded-md text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              清除时间
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main: synced Left Labels + Right Gantt */}
@@ -125,26 +231,36 @@ export function RoadmapGantt() {
           {/* Product rows */}
           {filteredProducts.length === 0 ? (
             <div className="flex items-center justify-center py-12 px-4 text-center">
-              <div className="space-y-2">
-                <svg className="mx-auto text-slate-300" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                  <rect x="14" y="14" width="7" height="7" rx="1" />
-                  <line x1="8" y1="10" x2="8" y2="14" />
-                  <line x1="12" y1="8" x2="12" y2="16" />
-                  <line x1="16" y1="10" x2="16" y2="14" />
-                </svg>
-                <p className="text-xs text-slate-400">
-                  {selectedLine ? `「${selectedLine}」暂无产品` : '暂无产品数据'}
-                </p>
-                <button
-                  onClick={() => setShowAddDialog(true)}
-                  className="text-[11px] text-blue-500 font-medium hover:text-blue-600 transition-colors"
-                >
-                  + 新建第一个产品
-                </button>
-              </div>
+              {hasActiveFilters ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-400">没有产品匹配当前筛选条件</p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-[11px] text-blue-500 font-medium hover:text-blue-600 transition-colors"
+                  >
+                    清除全部筛选
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <svg className="mx-auto text-slate-300" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                    <line x1="8" y1="10" x2="8" y2="14" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="16" y1="10" x2="16" y2="14" />
+                  </svg>
+                  <p className="text-xs text-slate-400">暂无产品数据</p>
+                  <button
+                    onClick={() => setShowAddDialog(true)}
+                    className="text-[11px] text-blue-500 font-medium hover:text-blue-600 transition-colors"
+                  >
+                    + 新建第一个产品
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             filteredProducts.map((product) => (
@@ -243,21 +359,30 @@ export function RoadmapGantt() {
                   const width = (phase.endYear - phase.startYear) * YEAR_WIDTH
                   const isActive = phase.status === 'active'
                   const opacity = phase.status === 'upcoming' ? (product.type === 'planned' ? 0.55 : 0.75) : 1
+                  const isStageHighlighted = selectedStageId !== null && phase.stageId === selectedStageId
 
                   return (
                     <div
                       key={phase.id}
-                      className="absolute rounded-lg cursor-pointer group transition-all duration-200 hover:brightness-110 hover:scale-[1.02] hover:z-10"
+                      className={`absolute rounded-lg cursor-pointer group transition-all duration-200 hover:brightness-110 hover:scale-[1.02] hover:z-10 ${
+                        isStageHighlighted ? 'z-10 scale-105' : ''
+                      }`}
                       style={{
                         left,
                         width: Math.max(width, 8),
                         height: product.type === 'planned' ? ROW_HEIGHT * 0.55 : ROW_HEIGHT * 0.65,
                         backgroundColor: stage.color,
                         opacity,
-                        boxShadow: isActive
-                          ? `0 2px 8px ${stage.color}40, 0 0 0 2px ${stage.color}30`
-                          : `0 1px 3px ${stage.color}20`,
-                        border: product.type === 'planned' ? '1.5px dashed #94a3b8' : 'none',
+                        boxShadow: isStageHighlighted
+                          ? `0 0 14px ${stage.color}80, 0 0 0 3px ${stage.color}`
+                          : isActive
+                            ? `0 2px 8px ${stage.color}40, 0 0 0 2px ${stage.color}30`
+                            : `0 1px 3px ${stage.color}20`,
+                        border: isStageHighlighted
+                          ? `2.5px solid ${stage.color}`
+                          : product.type === 'planned'
+                            ? '1.5px dashed #94a3b8'
+                            : 'none',
                       }}
                       onClick={() => setSelectedStage({ product, phase })}
                       title={`${stage.name}: ${phase.startYear} - ${phase.endYear}`}

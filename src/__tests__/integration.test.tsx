@@ -94,7 +94,8 @@ describe('Full CRUD integration', () => {
     // 2. Find and edit the new product
     // Re-fetch to simulate store update after create
     vi.mocked(api.fetchProducts).mockResolvedValue([...products, updatedProduct])
-    await user.click(screen.getByText('📋 全部产品线'))
+    const allProductLineButtons = screen.getAllByText('全部产品线')
+    await user.click(allProductLineButtons[1])
 
     const editButtons = screen.getAllByTitle('编辑产品')
     const lastEditBtn = editButtons[editButtons.length - 1]
@@ -113,7 +114,8 @@ describe('Full CRUD integration', () => {
     // 3. Delete the product
     vi.mocked(api.fetchProducts).mockResolvedValue([...products])
     // Wait for UI to reflect changes
-    await user.click(screen.getByText('📋 全部产品线'))
+    const allProductLineButtons2 = screen.getAllByText('全部产品线')
+    await user.click(allProductLineButtons2[1])
 
     const deleteButtons = screen.getAllByTitle('删除产品')
     const lastDeleteBtn = deleteButtons[deleteButtons.length - 1]
