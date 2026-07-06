@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import type { TriggerRule, RuleCondition } from '../types'
+import type { TriggerRule, RuleCondition, LifecycleStage } from '../types'
 import { showToast } from './Toast'
 import * as api from '../api/client'
+import { ConditionEditor, describeCondition } from './ConditionEditor'
 
 const CATEGORY_MAP: Record<TriggerRule['category'], { label: string; color: string }> = {
   '法规': { label: '法规', color: 'bg-purple-100 text-purple-700' },
@@ -29,13 +30,16 @@ interface RuleDialogProps {
   rule: TriggerRule | null
   onClose: () => void
   onSave: () => void
+  stages: LifecycleStage[]
 }
 
-function RuleDialog({ open, rule, onClose, onSave }: RuleDialogProps) {
+function RuleDialog({ open, rule, onClose, onSave, stages }: RuleDialogProps) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<TriggerRule['category']>('市场')
   const [description, setDescription] = useState('')
-  const [conditionText, setConditionText] = useState('')
+  const [condition, setCondition] = useState<RuleCondition>(
+    { type: 'time_since', stageId: 'growth', yearsMin: 1, yearsMax: 4 }
+  )
   const [action, setAction] = useState<TriggerRule['action']>('alert')
   const [priority, setPriority] = useState<TriggerRule['priority']>('medium')
   const [saving, setSaving] = useState(false)
@@ -47,14 +51,14 @@ function RuleDialog({ open, rule, onClose, onSave }: RuleDialogProps) {
         setName(rule.name)
         setCategory(rule.category)
         setDescription(rule.description)
-        setConditionText(JSON.stringify(rule.condition, null, 2))
+        setCondition(rule.condition)
         setAction(rule.action)
         setPriority(rule.priority)
       } else {
         setName('')
         setCategory('市场')
         setDescription('')
-        setConditionText('')
+        setCondition({ type: 'time_since', stageId: 'growth', yearsMin: 1, yearsMax: 4 })
         setAction('alert')
         setPriority('medium')
       }
@@ -65,12 +69,7 @@ function RuleDialog({ open, rule, onClose, onSave }: RuleDialogProps) {
   const validate = (): boolean => {
     const next: Record<string, string> = {}
     if (!name.trim()) next.name = '请输入规则名称'
-    try {
-      if (conditionText.trim()) JSON.parse(conditionText)
-      else next.condition = '请输入触发条件'
-    } catch {
-      next.condition = '条件格式无效，请输入有效 JSON'
-    }
+    if (!condition) next.condition = '请输入触发条件'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -83,7 +82,7 @@ function RuleDialog({ open, rule, onClose, onSave }: RuleDialogProps) {
         name: name.trim(),
         category,
         description: description.trim(),
-        condition: JSON.parse(conditionText) as RuleCondition,
+        condition,
         action,
         priority,
         enabled: rule?.enabled ?? true,
@@ -192,15 +191,15 @@ function RuleDialog({ open, rule, onClose, onSave }: RuleDialogProps) {
             {/* Condition */}
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5">
-                触发条件 JSON  <span className="text-red-400">*</span>
+                触发条件  <span className="text-red-400">*</span>
               </label>
-              <textarea
-                value={conditionText}
-                onChange={(e) => setConditionText(e.target.value)}
-                placeholder='{"type":"time_since","stageId":"mature","yearsMin":1,"yearsMax":3}'
-                rows={4}
-                className={`w-full px-3 py-2 text-xs font-mono border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 ${errors.condition ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
-              />
+              <div className={errors.condition ? 'border border-red-300 rounded-xl' : ''}>
+                <ConditionEditor
+                  value={condition}
+                  onChange={setCondition}
+                  stages={stages}
+                />
+              </div>
               {errors.condition && <p className="text-[11px] text-red-500 mt-1">{errors.condition}</p>}
             </div>
           </div>
@@ -227,9 +226,10 @@ function RuleDialog({ open, rule, onClose, onSave }: RuleDialogProps) {
 
 interface Props {
   onBack: () => void
+  stages?: LifecycleStage[]
 }
 
-export function RuleConfigPanel({ onBack }: Props) {
+export function RuleConfigPanel({ onBack, stages = [] }: Props) {
   const [rules, setRules] = useState<TriggerRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -350,8 +350,8 @@ export function RuleConfigPanel({ onBack }: Props) {
                       </div>
                       <p className="text-xs text-slate-500 mb-2">{rule.description}</p>
                       <div className="flex items-center gap-3">
-                        <div className="text-[10px] text-slate-400 bg-slate-50 px-2 py-1 rounded font-mono max-w-[300px] truncate">
-                          {JSON.stringify(rule.condition)}
+                        <div className="text-[10px] text-slate-500 bg-slate-50 px-2 py-1 rounded max-w-[300px] truncate">
+                          {describeCondition(rule.condition, stages)}
                         </div>
                       </div>
                     </div>
@@ -412,6 +412,7 @@ export function RuleConfigPanel({ onBack }: Props) {
         rule={editingRule}
         onClose={() => { setDialogOpen(false); setEditingRule(null) }}
         onSave={loadRules}
+        stages={stages}
       />
 
       {/* Delete confirmation */}

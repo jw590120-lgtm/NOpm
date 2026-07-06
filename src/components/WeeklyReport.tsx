@@ -32,6 +32,156 @@ const mdComponents = {
   code({ children }: { children: React.ReactNode }) {
     return <code className="px-1.5 py-0.5 bg-slate-100 rounded text-xs text-indigo-600 font-mono">{children}</code>
   },
+  table({ children }: { children: React.ReactNode }) {
+    return <table className="w-full border-collapse my-3 text-sm text-slate-600">{children}</table>
+  },
+  thead({ children }: { children: React.ReactNode }) {
+    return <thead className="bg-slate-50 print:bg-gray-100">{children}</thead>
+  },
+  th({ children }: { children: React.ReactNode }) {
+    return <th className="border border-slate-300 px-3 py-1.5 text-left font-semibold text-slate-700 print:text-black print:border-gray-400">{children}</th>
+  },
+  td({ children }: { children: React.ReactNode }) {
+    return <td className="border border-slate-300 px-3 py-1.5 print:text-black print:border-gray-400">{children}</td>
+  },
+}
+
+/** Escape HTML special characters */
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/** Apply inline markdown formatting (bold, italic, code) to a single line */
+function inlineFormat(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:#f4f4f4;padding:2px 4px;border-radius:3px">$1</code>')
+}
+
+/** Convert markdown to basic HTML for Word export */
+function markdownToSimpleHtml(md: string): string {
+  const lines = md.split('\n')
+  const result: string[] = []
+  let inTable = false
+  let inCodeBlock = false
+  let tableHeaderRendered = false
+  let inUnorderedList = false
+  let inOrderedList = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Code block fence
+    if (line.trimStart().startsWith('```')) {
+      if (inTable) { result.push('</table>'); inTable = false; tableHeaderRendered = false }
+      if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false }
+      if (inOrderedList) { result.push('</ol>'); inOrderedList = false }
+      if (inCodeBlock) {
+        result.push('</code></pre>')
+        inCodeBlock = false
+      } else {
+        result.push('<pre><code>')
+        inCodeBlock = true
+      }
+      continue
+    }
+
+    if (inCodeBlock) {
+      result.push(escapeHtml(line))
+      continue
+    }
+
+    // Table
+    const trimmedLine = line.trim()
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+      if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false }
+      if (inOrderedList) { result.push('</ol>'); inOrderedList = false }
+      if (!inTable) {
+        result.push('<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;width:100%;margin:8px 0">')
+        inTable = true
+        tableHeaderRendered = false
+      }
+      // Skip alignment separator row
+      if (/^\|[\s\-:]+\|[\s\-:]+\|$/.test(trimmedLine)) continue
+      const cells = trimmedLine.split('|').slice(1, -1)
+      const tag = tableHeaderRendered ? 'td' : 'th'
+      tableHeaderRendered = true
+      result.push('<tr>' + cells.map(c => `<${tag} style="padding:4px 8px;border:1px solid #999">${inlineFormat(c.trim())}</${tag}>`).join('') + '</tr>')
+      continue
+    }
+    if (inTable) {
+      result.push('</table>')
+      inTable = false
+      tableHeaderRendered = false
+    }
+
+    // Close lists on non-list lines
+    if (inUnorderedList && !/^[\s]*[-*+]\s/.test(line)) {
+      result.push('</ul>')
+      inUnorderedList = false
+    }
+    if (inOrderedList && !/^[\s]*\d+\.\s/.test(line)) {
+      result.push('</ol>')
+      inOrderedList = false
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}\s*$/.test(trimmedLine)) {
+      result.push('<hr>')
+      continue
+    }
+
+    // Headings
+    if (line.startsWith('### ')) {
+      result.push(`<h3 style="font-size:14pt;color:#333;margin:10px 0 4px">${inlineFormat(line.slice(4))}</h3>`)
+      continue
+    }
+    if (line.startsWith('## ')) {
+      result.push(`<h2 style="font-size:16pt;color:#222;margin:14px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px">${inlineFormat(line.slice(3))}</h2>`)
+      continue
+    }
+    if (line.startsWith('# ')) {
+      result.push(`<h1 style="font-size:20pt;color:#111;margin:16px 0 8px">${inlineFormat(line.slice(2))}</h1>`)
+      continue
+    }
+
+    // Unordered list
+    if (/^[\s]*[-*+]\s/.test(line)) {
+      if (!inUnorderedList) { result.push('<ul style="margin:4px 0;padding-left:24px">'); inUnorderedList = true }
+      result.push(`<li style="margin-bottom:4px">${inlineFormat(line.replace(/^[\s]*[-*+]\s/, ''))}</li>`)
+      continue
+    }
+
+    // Ordered list
+    if (/^[\s]*\d+\.\s/.test(line)) {
+      if (!inOrderedList) { result.push('<ol style="margin:4px 0;padding-left:24px">'); inOrderedList = true }
+      result.push(`<li style="margin-bottom:4px">${inlineFormat(line.replace(/^[\s]*\d+\.\s/, ''))}</li>`)
+      continue
+    }
+
+    // Blockquote
+    if (line.startsWith('> ')) {
+      result.push(`<blockquote style="border-left:3px solid #99c;padding-left:12px;color:#555;margin:8px 0">${inlineFormat(line.slice(2))}</blockquote>`)
+      continue
+    }
+
+    // Empty line
+    if (trimmedLine === '') {
+      result.push('<br>')
+      continue
+    }
+
+    // Paragraph
+    result.push(`<p style="margin:4px 0;font-size:12pt">${inlineFormat(line)}</p>`)
+  }
+
+  if (inTable) result.push('</table>')
+  if (inCodeBlock) result.push('</code></pre>')
+  if (inUnorderedList) result.push('</ul>')
+  if (inOrderedList) result.push('</ol>')
+
+  return result.join('\n')
 }
 
 interface Props {
@@ -71,28 +221,90 @@ export function WeeklyReport({ onClose }: Props) {
     }
   }, [report])
 
+  const handleExportPdf = useCallback(() => {
+    if (!report) return
+    window.print()
+  }, [report])
+
+  const handleExportWord = useCallback(() => {
+    if (!report) return
+    const htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8"><title>AI 健康检查周报</title></head>
+      <body style="font-family:system-ui,sans-serif;padding:20px;color:#000">
+        <h1 style="text-align:center;font-size:22pt;margin-bottom:4px">AI 健康检查周报</h1>
+        ${generatedAt ? `<p style="text-align:center;color:#666;font-size:10pt;margin-bottom:20px">生成时间：${generatedAt}</p>` : ''}
+        ${markdownToSimpleHtml(report)}
+      </body></html>`
+
+    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `AI健康检查周报_${new Date().toISOString().slice(0, 10)}.doc`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    showToast('Word 文档已下载')
+  }, [report, generatedAt])
+
   return (
-    <div className="h-full flex flex-col bg-white">
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { margin: 2cm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}} />
+      <div className="h-full flex flex-col bg-white print:bg-white">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 flex items-center justify-between print:border-none print:py-3">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">AI 健康检查周报</h2>
-          <p className="text-[10px] text-slate-400">
+          <h2 className="text-sm font-bold text-slate-800 print:text-xl print:font-bold print:text-black">AI 健康检查周报</h2>
+          <p className="text-[10px] text-slate-400 print:text-xs print:text-gray-600">
             {generatedAt ? `生成时间：${generatedAt}` : '基于规则引擎检查结果，由 AI 自动生成'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           {report && (
-            <button
-              onClick={handleCopy}
-              className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              复制
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                复制
+              </button>
+              <button
+                onClick={handleExportPdf}
+                title="通过浏览器打印为 PDF"
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                  <line x1="12" y1="12" x2="12" y2="18" />
+                  <polyline points="9,15 12,18 15,15" />
+                </svg>
+                导出 PDF
+              </button>
+              <button
+                onClick={handleExportWord}
+                title="下载为 Word 文档"
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="9" y1="21" x2="9" y2="9" />
+                </svg>
+                导出 Word
+              </button>
+            </>
           )}
           <button
             onClick={handleGenerate}
@@ -134,9 +346,9 @@ export function WeeklyReport({ onClose }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6 print:overflow-visible print:p-0">
         {error ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4">
+          <div className="print:hidden flex flex-col items-center justify-center h-full gap-4">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -150,15 +362,15 @@ export function WeeklyReport({ onClose }: Props) {
             </button>
           </div>
         ) : report ? (
-          <div className="max-w-3xl mx-auto print:max-w-none print:p-0">
-            <div className="prose prose-sm prose-slate max-w-none">
+          <div className="max-w-3xl mx-auto print:max-w-none print:p-0 print:text-black">
+            <div className="prose prose-sm prose-slate max-w-none print:prose-base print:text-black print:[&_*]:text-black">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
                 {report}
               </ReactMarkdown>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-6">
+          <div className="print:hidden flex flex-col items-center justify-center h-full gap-6">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -178,5 +390,6 @@ export function WeeklyReport({ onClose }: Props) {
         )}
       </div>
     </div>
+    </>
   )
 }
