@@ -189,3 +189,26 @@ export function aiAnalyzeProduct(productId: string): Promise<{ analysis: string 
 export function generateWeeklyReport(): Promise<{ report: string }> {
   return request<{ report: string }>('/report/weekly', { method: 'POST' })
 }
+
+// ── AI Timeline Explanation ──
+
+export interface PhaseExplanation {
+  stageId: string
+  stageName: string
+  explanation: string
+  deviation: string
+}
+
+export interface TimelineExplanationResult {
+  phaseExplanations: PhaseExplanation[]
+}
+
+export function explainTimeline(params: {
+  simulation: SimulationResult
+  referenceProductId: string
+}): Promise<TimelineExplanationResult> {
+  return request<TimelineExplanationResult>('/ai/explain-timeline', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  })
+}

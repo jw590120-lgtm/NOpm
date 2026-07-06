@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express'
-import { chat, analyzeNotification, analyzeProduct } from '../services/aiService.js'
+import { chat, analyzeNotification, analyzeProduct, explainTimeline } from '../services/aiService.js'
 import { buildSystemContext } from '../services/contextBuilder.js'
 import { seedIfEmpty } from '../storage.js'
 import { products as seedProducts, stages as seedStages } from '../seed.js'
@@ -143,6 +143,40 @@ router.post('/analyze-product', async (req: Request, res: Response) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'AI analysis failed'
     res.status(502).json({ error: 'AI 分析失败', detail: message })
+  }
+})
+
+/** POST /api/ai/explain-timeline — AI 解释时间线模拟结果 */
+router.post('/explain-timeline', async (req: Request, res: Response) => {
+  if (!isAiConfigured()) {
+    res.status(503).json({
+      error: 'AI 服务未配置',
+      detail: '请在 server/.env 中配置 DEEPSEEK_API_KEY',
+    })
+    return
+  }
+
+  try {
+    const { simulation, referenceProductId } = req.body
+    if (!simulation || !referenceProductId) {
+      res.status(400).json({ error: '缺少 simulation 或 referenceProductId 参数' })
+      return
+    }
+
+    const products = seedIfEmpty('products', seedProducts)
+    const stages = seedIfEmpty('stages', seedStages)
+
+    const referenceProduct = products.find((p) => p.id === referenceProductId)
+    if (!referenceProduct) {
+      res.status(404).json({ error: `参考产品 ${referenceProductId} 不存在` })
+      return
+    }
+
+    const result = await explainTimeline(simulation, referenceProduct.phases, stages)
+    res.json(result)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'AI explanation failed'
+    res.status(502).json({ error: 'AI 解释失败', detail: message })
   }
 })
 

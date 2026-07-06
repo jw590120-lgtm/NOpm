@@ -41,6 +41,9 @@ export function TimelineSimulatorPanel({ onBack }: Props) {
   const [simulating, setSimulating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editedPhases, setEditedPhases] = useState<ProductPhase[]>([])
+  const [explaining, setExplaining] = useState(false)
+  const [explanations, setExplanations] = useState<api.PhaseExplanation[] | null>(null)
+  const [explanationError, setExplanationError] = useState<string | null>(null)
 
   // Load data
   useEffect(() => {
@@ -91,6 +94,8 @@ export function TimelineSimulatorPanel({ onBack }: Props) {
       })
       setResult(res)
       setEditedPhases(res.phases.map((p) => ({ ...p })))
+      setExplanations(null)
+      setExplanationError(null)
       showToast('时间线生成成功')
     } catch (err) {
       showToast(err instanceof Error ? err.message : '模拟失败', 'error')
@@ -121,6 +126,38 @@ export function TimelineSimulatorPanel({ onBack }: Props) {
       showToast(err instanceof Error ? err.message : '保存失败', 'error')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleExplain = async () => {
+    if (!result || !referenceProductId) return
+    setExplaining(true)
+    setExplanations(null)
+    setExplanationError(null)
+    try {
+      const res = await api.explainTimeline({
+        simulation: result,
+        referenceProductId,
+      })
+      setExplanations(res.phaseExplanations)
+      if (res.phaseExplanations.length === 0) {
+        showToast('AI 未返回有效解释，请重试', 'error')
+      } else {
+        showToast('AI 解释已生成')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'AI 解释失败'
+      setExplanationError(message)
+      showToast(message, 'error')
+    } finally {
+      setExplaining(false)
+    }
+  }
+
+  const explainMap = new Map<string, api.PhaseExplanation>()
+  if (explanations) {
+    for (const e of explanations) {
+      explainMap.set(e.stageId, e)
     }
   }
 
@@ -278,58 +315,103 @@ export function TimelineSimulatorPanel({ onBack }: Props) {
                   参考「{result.referenceProductName}」· 触发点 {result.triggerPoint}年 · 共 {result.phases.length} 个阶段
                 </p>
               </div>
-              <button
-                onClick={handleSaveAsProduct}
-                disabled={saving}
-                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-              >
-                {saving ? '保存中...' : '保存为新产品'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExplain}
+                  disabled={explaining}
+                  className="px-4 py-2 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {explaining ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      AI 解释中...
+                    </>
+                  ) : explanations ? (
+                    <>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="1,4 1,10 7,10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
+                      刷新解释
+                    </>
+                  ) : (
+                    <>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                      AI 智能解释
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleSaveAsProduct}
+                  disabled={saving}
+                  className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {saving ? '保存中...' : '保存为新产品'}
+                </button>
+              </div>
             </div>
 
             {/* Gantt-style timeline */}
             <div className="flex-1 overflow-auto min-h-0">
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {editedPhases.map((phase) => {
                   const stageName = STAGE_NAMES[phase.stageId] ?? phase.stageId
                   const color = STAGE_COLORS[phase.stageId] ?? '#94a3b8'
                   const leftPercent = ((phase.startYear - minYear) / totalSpan) * 100
-                  const widthPercent = ((phase.endYear - phase.startYear + 1) / totalSpan) * 100 // +1 for 1-year-min visibility
+                  const widthPercent = ((phase.endYear - phase.startYear + 1) / totalSpan) * 100
+                  const exp = explainMap.get(phase.stageId)
 
                   return (
-                    <div key={phase.id} className="flex items-center gap-3 group">
-                      {/* Stage label */}
-                      <div className="w-24 flex-shrink-0">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
-                          <span className="text-xs font-medium text-slate-700">{stageName}</span>
+                    <div key={phase.id}>
+                      {/* Phase row: label + bar + inputs */}
+                      <div className="flex items-center gap-3 group">
+                        <div className="w-24 flex-shrink-0">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+                            <span className="text-xs font-medium text-slate-700">{stageName}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 h-8 bg-slate-100 rounded-lg relative overflow-hidden">
+                          <div
+                            className="absolute top-0 h-full rounded-lg opacity-80"
+                            style={{ left: `${leftPercent}%`, width: `${widthPercent}%`, backgroundColor: color }}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <input
+                            type="number"
+                            value={phase.startYear}
+                            onChange={(e) => updatePhase(phase.id, 'startYear', Number(e.target.value))}
+                            className="w-16 px-2 py-1 text-xs text-center border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          />
+                          <span className="text-[10px] text-slate-400">-</span>
+                          <input
+                            type="number"
+                            value={phase.endYear}
+                            onChange={(e) => updatePhase(phase.id, 'endYear', Number(e.target.value))}
+                            className="w-16 px-2 py-1 text-xs text-center border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          />
                         </div>
                       </div>
 
-                      {/* Timeline bar */}
-                      <div className="flex-1 h-8 bg-slate-100 rounded-lg relative overflow-hidden">
-                        <div
-                          className="absolute top-0 h-full rounded-lg opacity-80"
-                          style={{ left: `${leftPercent}%`, width: `${widthPercent}%`, backgroundColor: color }}
-                        />
-                      </div>
-
-                      {/* Year inputs */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <input
-                          type="number"
-                          value={phase.startYear}
-                          onChange={(e) => updatePhase(phase.id, 'startYear', Number(e.target.value))}
-                          className="w-16 px-2 py-1 text-xs text-center border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300"
-                        />
-                        <span className="text-[10px] text-slate-400">-</span>
-                        <input
-                          type="number"
-                          value={phase.endYear}
-                          onChange={(e) => updatePhase(phase.id, 'endYear', Number(e.target.value))}
-                          className="w-16 px-2 py-1 text-xs text-center border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300"
-                        />
-                      </div>
+                      {/* Explanation row */}
+                      {exp && (
+                        <div className="flex items-start gap-3 ml-24 mr-[140px] -mt-0.5 pb-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">
+                              AI: {exp.explanation}
+                            </p>
+                            {exp.deviation && (
+                              <span className={`inline-block text-[9px] mt-0.5 px-1.5 py-0.5 rounded ${
+                                exp.deviation.includes('一致') || exp.deviation.includes('相同')
+                                  ? 'text-emerald-600 bg-emerald-50'
+                                  : 'text-amber-600 bg-amber-50'
+                              }`}>
+                                {exp.deviation}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

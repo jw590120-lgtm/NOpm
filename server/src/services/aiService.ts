@@ -117,3 +117,98 @@ ${phaseInfo}
     messages: [{ role: 'user', content: prompt }],
   })
 }
+
+export interface TimelineExplanationResult {
+  phaseExplanations: {
+    stageId: string
+    stageName: string
+    explanation: string
+    deviation: string
+  }[]
+}
+
+export async function explainTimeline(
+  simulation: {
+    productName: string
+    referenceProductName: string
+    triggerPoint: number
+    phases: { stageId: string; startYear: number; endYear: number }[]
+  },
+  referencePhases: { stageId: string; startYear: number; endYear: number }[],
+  stages: { id: string; name: string; subStages: { name: string; durationMonths: [number, number] }[] }[],
+): Promise<TimelineExplanationResult> {
+  const stagesText = stages
+    .map((s) => {
+      const subStagesText = s.subStages
+        .map((ss) => `${ss.name}(${ss.durationMonths[0]}-${ss.durationMonths[1]}月)`)
+        .join('、')
+      return `- ${s.id}(${s.name}): ${subStagesText}`
+    })
+    .join('\n')
+
+  const referenceText = referencePhases
+    .sort((a, b) => a.startYear - b.startYear)
+    .map((p) => `  ${p.stageId}: ${p.startYear}-${p.endYear}`)
+    .join('\n')
+
+  const simulationText = simulation.phases
+    .sort((a, b) => a.startYear - b.startYear)
+    .map((p) => `  ${p.stageId}: ${p.startYear}-${p.endYear}`)
+    .join('\n')
+
+  const prompt = `请为新产品「${simulation.productName}」的时间线每个阶段生成解释。
+
+生命周期阶段定义：
+${stagesText}
+
+参考产品「${simulation.referenceProductName}」的阶段：
+${referenceText}
+
+新产品「${simulation.productName}」的阶段：
+${simulationText}
+
+请返回 JSON 数组，每个元素包含：
+- stageId: 阶段ID
+- stageName: 阶段中文名
+- explanation: 该阶段的解释（含关键工作和时间说明，不超过80字）
+- deviation: 与参考产品的偏差说明（如"比N系列晚12年"或"时长一致"）
+
+仅返回 JSON 数组，不要其他文字：
+[{"stageId":"concept","stageName":"概念与立项","explanation":"...","deviation":"..."},...]`
+
+  const response = await client.chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: 'system',
+        content: '你是产品生命周期管理（PLM）系统的 AI 助手。请严格按用户要求返回 JSON 数组，不添加额外说明。',
+      },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.3,
+    max_tokens: 2000,
+  })
+
+  const rawContent = response.choices[0]?.message?.content ?? '[]'
+
+  // Extract JSON from possible markdown code block
+  let jsonText = rawContent.trim()
+  const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (codeBlockMatch) {
+    jsonText = codeBlockMatch[1].trim()
+  }
+
+  // Try to find JSON array if response has extra text
+  const arrayMatch = jsonText.match(/\[[\s\S]*\]/)
+  if (arrayMatch) {
+    jsonText = arrayMatch[0]
+  }
+
+  try {
+    const phaseExplanations = JSON.parse(jsonText) as TimelineExplanationResult['phaseExplanations']
+    return { phaseExplanations }
+  } catch {
+    // Fallback: return empty explanations
+    return { phaseExplanations: [] }
+  }
+}
