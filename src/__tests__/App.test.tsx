@@ -57,7 +57,7 @@ describe('App', () => {
   it('renders the footer', async () => {
     render(<App />)
     await waitFor(() => {
-      expect(screen.getByText(/Phase 4/)).toBeInTheDocument()
+      expect(screen.getByText(/v2\.0/)).toBeInTheDocument()
     })
   })
 

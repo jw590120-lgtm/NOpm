@@ -262,7 +262,7 @@ function App() {
       {/* Footer */}
       <footer className="flex-shrink-0 h-7 bg-white border-t border-slate-100 flex items-center justify-between px-6">
         <span className="text-[10px] text-slate-400">
-          Phase 4 · AI 智能分析已就绪
+          v2.0 · 全功能发布
         </span>
         <span className="text-[10px] text-slate-400">
           点击阶段色块查看工作详情
