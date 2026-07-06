@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
+import html2canvas from 'html2canvas'
 import type { Product, ProductPhase } from '../types'
 import { useProductStore } from '../stores/productStore'
 import { StageDetailDrawer } from './StageDetailDrawer'
@@ -32,6 +33,7 @@ export function RoadmapGantt() {
 
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null)
   const [yearRange, setYearRange] = useState<{ start: number | null; end: number | null }>({ start: null, end: null })
+  const [exporting, setExporting] = useState(false)
 
   const products = useProductStore((s) => s.products)
   const stages = useProductStore((s) => s.stages)
@@ -77,10 +79,173 @@ export function RoadmapGantt() {
   const todayX = (TODAY_YEAR - START_YEAR) * YEAR_WIDTH + YEAR_WIDTH * 0.5
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const captureRef = useRef<HTMLDivElement>(null)
 
   const scrollToToday = () => {
     scrollContainerRef.current?.scrollTo({ left: todayX - 300, behavior: 'smooth' })
   }
+
+  const captureGantt = useCallback(async (): Promise<HTMLCanvasElement | null> => {
+    const el = captureRef.current
+    const scrollEl = scrollContainerRef.current
+    if (!el || !scrollEl) return null
+
+    // Save original styles
+    const origOverflow = scrollEl.style.overflow
+    const origWidth = scrollEl.style.width
+    const origMinWidth = scrollEl.style.minWidth
+
+    // Expand right gantt area so html2canvas captures the full chart
+    scrollEl.style.overflow = 'visible'
+    scrollEl.style.width = `${chartWidth}px`
+    scrollEl.style.minWidth = '0px'
+
+    return new Promise((resolve) => {
+      // Small delay to let the browser reflow before capture
+      setTimeout(async () => {
+        try {
+          const canvas = await html2canvas(el, {
+            useCORS: true,
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false,
+          })
+          resolve(canvas)
+        } catch {
+          resolve(null)
+        } finally {
+          // Restore original styles
+          scrollEl.style.overflow = origOverflow
+          scrollEl.style.width = origWidth
+          scrollEl.style.minWidth = origMinWidth
+        }
+      }, 50)
+    })
+  }, [chartWidth])
+
+  const handleCopy = useCallback(async () => {
+    setExporting(true)
+    try {
+      const canvas = await captureGantt()
+      if (!canvas) {
+        showToast('截图失败，请重试', 'error')
+        return
+      }
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/png'),
+      )
+      if (!blob) {
+        showToast('生成图片失败', 'error')
+        return
+      }
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob }),
+      ])
+      showToast('已复制到剪贴板')
+    } catch {
+      showToast('复制失败，请重试', 'error')
+    } finally {
+      setExporting(false)
+    }
+  }, [captureGantt])
+
+  const handleExportImage = useCallback(async () => {
+    setExporting(true)
+    try {
+      const canvas = await captureGantt()
+      if (!canvas) {
+        showToast('截图失败，请重试', 'error')
+        return
+      }
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/png'),
+      )
+      if (!blob) {
+        showToast('生成图片失败', 'error')
+        return
+      }
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+      const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}`
+      const filename = `路线图_${dateStr}_${timeStr}.png`
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      showToast('图片已下载')
+    } catch {
+      showToast('导出失败，请重试', 'error')
+    } finally {
+      setExporting(false)
+    }
+  }, [captureGantt])
+
+  const handleExportPdf = useCallback(async () => {
+    setExporting(true)
+    try {
+      const canvas = await captureGantt()
+      if (!canvas) {
+        showToast('截图失败，请重试', 'error')
+        return
+      }
+      const dataUrl = canvas.toDataURL('image/png')
+
+      const w = window.open('', '_blank', 'width=900,height=700')
+      if (!w) {
+        showToast('请允许浏览器弹窗以导出 PDF', 'error')
+        return
+      }
+      w.document.write(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>路线图导出</title>
+  <style>
+    @page { margin: 0.5cm; size: landscape; }
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <img src="${dataUrl}" />
+</body>
+</html>`)
+      w.document.close()
+      w.focus()
+      // Wait for content to render, then trigger print
+      w.onload = () => {
+        setTimeout(() => {
+          w.print()
+        }, 300)
+      }
+      if (w.document.readyState === 'complete') {
+        setTimeout(() => {
+          w.print()
+        }, 300)
+      }
+    } catch {
+      showToast('导出失败，请重试', 'error')
+    } finally {
+      setExporting(false)
+    }
+  }, [captureGantt])
 
   const yearHeaders = useMemo(
     () =>
@@ -135,6 +300,43 @@ export function RoadmapGantt() {
               清除全部筛选
             </button>
           )}
+          {/* Export buttons */}
+          <button
+            onClick={handleCopy}
+            disabled={exporting}
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            {exporting ? '导出中...' : '复制'}
+          </button>
+          <button
+            onClick={handleExportImage}
+            disabled={exporting}
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21,15 16,10 5,21" />
+            </svg>
+            {exporting ? '导出中...' : '导出图片'}
+          </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={exporting}
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14,2 14,8 20,8" />
+              <line x1="12" y1="12" x2="12" y2="18" />
+              <polyline points="9,15 12,18 15,15" />
+            </svg>
+            {exporting ? '导出中...' : '导出PDF'}
+          </button>
           <button
             onClick={() => setShowAddDialog(true)}
             className="flex items-center gap-1 px-3 py-1 rounded-lg border-2 border-dashed border-blue-200 text-xs font-medium text-blue-500 hover:bg-blue-50 hover:border-blue-300 transition-colors"
@@ -215,7 +417,7 @@ export function RoadmapGantt() {
       </div>
 
       {/* Main: synced Left Labels + Right Gantt */}
-      <div className="flex flex-1 min-h-0">
+      <div ref={captureRef} className="flex flex-1 min-h-0">
         {/* Left: Product Labels */}
         <div className="flex-shrink-0 border-r border-slate-200 bg-slate-50/80" style={{ width: LABEL_WIDTH }}>
           {/* Header placeholder */}
